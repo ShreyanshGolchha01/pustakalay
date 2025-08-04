@@ -1,0 +1,485 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/library_provider.dart';
+import '../utils/app_theme.dart';
+import 'books_list_screen.dart';
+import 'add_book_screen.dart';
+import 'login_screen.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  _DashboardScreenState createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar
+              _buildAppBar(),
+              
+              // Main Content
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Welcome Message
+                        _buildWelcomeCard(),
+                        
+                        SizedBox(height: 24),
+                        
+                        // Statistics Cards
+                        _buildStatsSection(),
+                        
+                        SizedBox(height: 24),
+                        
+                        // Recent Books Section
+                        _buildRecentBooksSection(),
+                        
+                        SizedBox(height: 24),
+                        
+                        // Action Buttons
+                        _buildActionButtons(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Icon(
+            Icons.library_books,
+            color: Colors.white,
+            size: 32,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'स्मृति पुस्तकालय',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                // Text(
+                //   'Library Management',
+                //   style: TextStyle(
+                //     color: Colors.white70,
+                //     fontSize: 14,
+                //   ),
+                // ),
+              ],
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _showLogoutDialog();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('लॉगआउट'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard() {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(20),
+          decoration: AppTheme.getCardDecoration(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                authProvider.getWelcomeMessage(),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primaryBlue,
+                ),
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.access_time, size: 16, color: const Color.fromARGB(255, 0, 0, 0)),
+                  SizedBox(width: 4),
+                  Text(
+                    'अपडेटेड: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color.fromARGB(255, 0, 0, 0),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatsSection() {
+    return Consumer<LibraryProvider>(
+      builder: (context, libraryProvider, child) {
+        final stats = libraryProvider.getLibraryStats();
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'लाइब्रेरी आंकड़े',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryBlue,
+              ),
+            ),
+            SizedBox(height: 16),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 2.0,
+              children: [
+                _buildStatCard(
+                  'कुल पुस्तकें',
+                  '${stats.totalBooks}',
+                  Icons.book,
+                  const Color.fromARGB(255, 26, 69, 186),
+                ),
+                _buildStatCard(
+                  'कुल दान',
+                  '${stats.totalDonations}',
+                  Icons.volunteer_activism,
+                  const Color.fromARGB(255, 26, 69, 186),
+                ),
+                _buildStatCard(
+                  'दानकर्ता',
+                  '${stats.totalDonors}',
+                  Icons.people,
+                  const Color.fromARGB(255, 26, 69, 186),
+                ),
+                _buildStatCard(
+                  'विषय श्रेणी',
+                  '${stats.totalGenres}',
+                  Icons.category,
+                  const Color.fromARGB(255, 26, 69, 186),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 24, color: color),
+          SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 10,
+              color: const Color.fromARGB(255, 0, 0, 0),
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentBooksSection() {
+    return Consumer<LibraryProvider>(
+      builder: (context, libraryProvider, child) {
+        final recentBooks = libraryProvider.getRecentBooks();
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'हाल की पुस्तकें',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => BooksListScreen()),
+                    );
+                  },
+                  child: Text('सभी देखें'),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: recentBooks.length,
+                itemBuilder: (context, index) {
+                  final book = recentBooks[index];
+                  return Container(
+                    width: 160,
+                    margin: EdgeInsets.only(right: 16),
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.book,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                book.title,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primaryBlue,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                book.author,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: const Color.fromARGB(255, 0, 0, 0),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Spacer(),
+                              Row(
+                                children: [
+                                  Icon(Icons.inventory_2, size: 14, color: const Color.fromARGB(255, 0, 0, 0)),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '${book.count}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: const Color.fromARGB(255, 0, 0, 0),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'त्वरित कार्य',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryBlue,
+          ),
+        ),
+        SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AddBookScreen()),
+                  );
+                },
+                icon: Icon(Icons.add),
+                label: Text('पुस्तक जोड़ें'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shadowColor: AppTheme.primaryBlue.withOpacity(0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => BooksListScreen()),
+                  );
+                },
+                icon: Icon(Icons.list),
+                label: Text('सभी पुस्तकें'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppTheme.secondaryBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shadowColor: AppTheme.secondaryBlue.withOpacity(0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('लॉगआउट'),
+        content: Text('क्या आप वाकई लॉगआउट करना चाहते हैं?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('रद्द करें'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.logout();
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => LoginScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('लॉगआउट'),
+          ),
+        ],
+      ),
+    );
+  }
+}
