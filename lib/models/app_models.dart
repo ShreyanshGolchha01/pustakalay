@@ -31,6 +31,15 @@ class User {
       createdAt: DateTime.parse(json['createdAt']),
     );
   }
+
+  factory User.fromApiJson(Map<String, dynamic> json) {
+    return User(
+      id: json['u_id'].toString(),
+      name: json['u_name'],
+      mobileNumber: json['u_mobile'],
+      createdAt: DateTime.parse(json['u_createdat']),
+    );
+  }
 }
 
 class Book {

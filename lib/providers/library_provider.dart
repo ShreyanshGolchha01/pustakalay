@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
 import '../models/app_models.dart';
+import '../utils/constants.dart';
 
 class LibraryProvider with ChangeNotifier {
   List<User> _users = [];
@@ -70,10 +73,22 @@ class LibraryProvider with ChangeNotifier {
   }
 
   // User Management
-  User? findUserByMobile(String mobileNumber) {
+  Future<User?> findUserByMobile(String mobileNumber) async {
     try {
-      return _users.firstWhere((user) => user.mobileNumber == mobileNumber);
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.searchUserEndpoint}?mobile=$mobileNumber'),
+        headers: ApiConstants.defaultHeaders,
+      ).timeout(ApiConstants.requestTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return User.fromApiJson(data['data']);
+        }
+      }
+      return null;
     } catch (e) {
+      print('Error finding user: $e');
       return null;
     }
   }
@@ -125,14 +140,99 @@ class LibraryProvider with ChangeNotifier {
   }
 
   // Donation Management
+  Future<bool> submitBookDonation({
+    required bool isNewUser,
+    required Map<String, dynamic> userData,
+    required List<Book> books,
+    String? certificatePath,
+    required String librarianId,
+  }) async {
+    try {
+      String? uploadedCertPath;
+      
+      // Upload certificate if provided
+      if (certificatePath != null) {
+        uploadedCertPath = await _uploadCertificate(File(certificatePath));
+        if (uploadedCertPath == null) {
+          print('Failed to upload certificate');
+          return false;
+        }
+      }
+
+      // Prepare request data
+      final requestData = {
+        'librarian_id': librarianId,
+        'user_data': userData,
+        'books': books.map((book) => {
+          'title': book.title,
+          'author': book.author,
+          'genre': book.genre,
+          'isbn': book.isbn,
+          'count': book.count,
+        }).toList(),
+        'is_new_user': isNewUser,
+        'certificate_path': uploadedCertPath,
+      };
+
+      // Submit to backend
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.addBooksEndpoint}'),
+        headers: ApiConstants.defaultHeaders,
+        body: jsonEncode(requestData),
+      ).timeout(ApiConstants.requestTimeout);
+
+      print('Submission response: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          // Update local data
+          _books.addAll(books);
+          await _saveData();
+          notifyListeners();
+          return true;
+        } else {
+          print('Submission failed: ${data['message']}');
+          return false;
+        }
+      } else {
+        print('HTTP Error: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Submission error: $e');
+      return false;
+    }
+  }
+
+  Future<String?> _uploadCertificate(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.uploadCertificateEndpoint}'),
+      );
+      
+      request.files.add(
+        await http.MultipartFile.fromPath('certificate', imageFile.path),
+      );
+      
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.bytesToString();
+        final data = jsonDecode(responseData);
+        if (data['success'] == true) {
+          return data['data']['file_path'];
+        }
+      }
+    } catch (e) {
+      print('Upload error: $e');
+    }
+    return null;
+  }
+
   Future<void> addDonation(Donation donation) async {
-    // TODO: Replace with actual API call
-    // final response = await http.post(
-    //   Uri.parse('${baseUrl}/api/donations'),
-    //   headers: {'Content-Type': 'application/json'},
-    //   body: jsonEncode(donation.toJson()),
-    // );
-    
+    // Legacy method - keeping for compatibility
     _donations.add(donation);
     await _saveData();
     notifyListeners();

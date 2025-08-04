@@ -1,56 +1,78 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../utils/constants.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isLoggedIn = false;
   String _librarianEmail = '';
   String _librarianName = '';
+  String _librarianId = '';
 
   bool get isLoggedIn => _isLoggedIn;
   String get librarianEmail => _librarianEmail;
   String get librarianName => _librarianName;
+  String? get librarianId => _librarianId.isNotEmpty ? _librarianId : null;
 
   Future<void> checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     _isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
     _librarianEmail = prefs.getString('librarianEmail') ?? '';
     _librarianName = prefs.getString('librarianName') ?? '';
+    _librarianId = prefs.getString('librarianId') ?? '';
     notifyListeners();
   }
 
   Future<bool> login(String email, String password) async {
     try {
-      // TODO: Replace with actual API call to backend
-      // Example:
-      // final response = await http.post(
-      //   Uri.parse('${baseUrl}/api/auth/login'),
-      //   headers: {'Content-Type': 'application/json'},
-      //   body: jsonEncode({'email': email, 'password': password}),
-      // );
+      final url = '${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}';
+      print('Login URL: $url');
+      print('Email: $email');
+      print('Password length: ${password.length}');
       
-      // For now, simulate API delay
-      await Future.delayed(Duration(seconds: 1));
+      // API call to backend
+      final response = await http.post(
+        Uri.parse(url),
+        headers: ApiConstants.defaultHeaders,
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      ).timeout(ApiConstants.requestTimeout);
 
-      // TODO: Replace this with actual backend response validation
-      // if (response.statusCode == 200) {
-      //   final data = jsonDecode(response.body);
-      //   _isLoggedIn = true;
-      //   _librarianEmail = data['email'];
-      //   _librarianName = data['name'];
-      
-      // Temporary - remove when backend is connected
-      _isLoggedIn = true;
-      _librarianEmail = email.toLowerCase();
-      _librarianName = 'लाइब्रेरियन';
+      print('Response Status: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
-      // Save to SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('librarianEmail', _librarianEmail);
-      await prefs.setString('librarianName', _librarianName);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['success'] == true) {
+          final userData = data['data']['user'];
+          
+          _isLoggedIn = true;
+          _librarianEmail = userData['l_email'];
+          _librarianName = userData['l_name'];
+          _librarianId = userData['l_id'].toString();
 
-      notifyListeners();
-      return true;
+          // Save to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setString('librarianEmail', _librarianEmail);
+          await prefs.setString('librarianName', _librarianName);
+          await prefs.setString('librarianId', _librarianId);
+
+          notifyListeners();
+          return true;
+        } else {
+          print('Login failed: ${data['message']}');
+          return false;
+        }
+      } else {
+        print('HTTP Error: ${response.statusCode}');
+        print('Error Body: ${response.body}');
+        return false;
+      }
       
     } catch (e) {
       print('Login error: $e');
@@ -63,6 +85,7 @@ class AuthProvider with ChangeNotifier {
       _isLoggedIn = false;
       _librarianEmail = '';
       _librarianName = '';
+      _librarianId = '';
 
       // Clear SharedPreferences
       final prefs = await SharedPreferences.getInstance();

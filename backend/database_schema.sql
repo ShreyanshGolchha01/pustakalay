@@ -26,28 +26,49 @@ CREATE TABLE `users` (
   `u_id` int(11) NOT NULL AUTO_INCREMENT,
   `u_name` varchar(255) NOT NULL,
   `u_mobile` varchar(10) NOT NULL,
-  `u_email` varchar(255) DEFAULT NULL,
-  `u_address` text DEFAULT NULL,
-  `u_createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
-  `u_updatedAt` timestamp NULL DEFAULT current_timestamp(),
+  `ul_id` int(11) NOT NULL,
+  `u_createdat` timestamp NOT NULL DEFAULT current_timestamp(),
+  `u_updatedat` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`u_id`),
-  UNIQUE KEY `u_mobile` (`u_mobile`)
+  UNIQUE KEY `u_mobile` (`u_mobile`),
+  KEY `fk_lib_1` (`ul_id`),
+  CONSTRAINT `fk_lib_1` FOREIGN KEY (`ul_id`) REFERENCES `login` (`l_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Books table
 CREATE TABLE `books` (
   `b_id` int(11) NOT NULL AUTO_INCREMENT,
-  `b_title` varchar(500) NOT NULL,
+  `b_title` varchar(255) NOT NULL,
   `b_author` varchar(255) NOT NULL,
-  `b_isbn` varchar(13) NOT NULL,
-  `b_genre` varchar(100) NOT NULL,
-  `b_language` varchar(50) NOT NULL,
-  `b_publication_year` int(4) DEFAULT NULL,
-  `b_pages` int(11) DEFAULT NULL,
+  `b_genre` varchar(255) NOT NULL,
+  `b_isbn` varchar(255) NOT NULL,
+  `b_count` int(5) NOT NULL DEFAULT 1,
+  `b_donatedBy` int(11) NOT NULL,
+  `b_status` enum('available','issued','damaged') NOT NULL DEFAULT 'available',
+  `bl_id` int(11) NOT NULL,
   `b_createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
-  `b_updatedAt` timestamp NULL DEFAULT current_timestamp(),
+  `b_updatedAt` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`b_id`),
-  UNIQUE KEY `b_isbn` (`b_isbn`)
+  UNIQUE KEY `b_isbn` (`b_isbn`),
+  KEY `fk_user_1` (`b_donatedBy`),
+  KEY `fk_lib_2` (`bl_id`),
+  CONSTRAINT `fk_lib_2` FOREIGN KEY (`bl_id`) REFERENCES `login` (`l_id`),
+  CONSTRAINT `fk_user_1` FOREIGN KEY (`b_donatedBy`) REFERENCES `users` (`u_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Files table (for certificate images)
+CREATE TABLE `files` (
+  `f_id` int(11) NOT NULL AUTO_INCREMENT,
+  `f_path` varchar(512) NOT NULL,
+  `f_user_id` int(11) NOT NULL,
+  `f_lib_id` int(11) NOT NULL,
+  `f_createdat` timestamp NOT NULL DEFAULT current_timestamp(),
+  `f_updatedat` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`f_id`),
+  KEY `fk_user_2` (`f_user_id`),
+  KEY `fk_lib_3` (`f_lib_id`),
+  CONSTRAINT `fk_lib_3` FOREIGN KEY (`f_lib_id`) REFERENCES `login` (`l_id`),
+  CONSTRAINT `fk_user_2` FOREIGN KEY (`f_user_id`) REFERENCES `users` (`u_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Donations table

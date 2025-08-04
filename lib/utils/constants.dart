@@ -1,16 +1,19 @@
 // API Constants for Backend Connection
 class ApiConstants {
   // Backend URL - PHP Server
-  static const String baseUrl = 'http://localhost/pustakalaya';
+  static const String baseUrl = 'http://192.168.1.9/pustakalaya';
   
   // API Endpoints
-  static const String loginEndpoint = '/api/login.php';
-  static const String logoutEndpoint = '/api/auth/logout';
-  static const String usersEndpoint = '/api/users';
-  static const String booksEndpoint = '/api/books';
-  static const String donationsEndpoint = '/api/donations';
-  static const String statsEndpoint = '/api/stats';
-  
+  static const String loginEndpoint = '/p_login.php';
+  static const String searchUserEndpoint = '/p_search_user.php';
+  static const String addBooksEndpoint = '/p_add_books.php';
+  static const String uploadCertificateEndpoint = '/p_upload_certificate.php';
+  static const String logoutEndpoint = '/p_logout.php';
+  static const String usersEndpoint = '/p_users.php';
+  static const String booksEndpoint = '/p_books.php';
+  static const String donationsEndpoint = '/p_donations.php';
+  static const String statsEndpoint = '/p_stats.php';
+
   // Headers
   static const Map<String, String> defaultHeaders = {
     'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../providers/library_provider.dart';
+import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../models/app_models.dart';
 
@@ -571,9 +572,9 @@ class _AddBookScreenState extends State<AddBookScreen> {
     );
   }
 
-  void _searchUser() {
+  Future<void> _searchUser() async {
     final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
-    final user = libraryProvider.findUserByMobile(_searchMobileController.text);
+    final user = await libraryProvider.findUserByMobile(_searchMobileController.text);
     
     setState(() {
       _selectedUser = user;
@@ -781,35 +782,46 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
     try {
       final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      User user;
+      // Prepare user data
+      Map<String, dynamic> userData;
       if (_isNewUser) {
-        user = User(
-          name: _nameController.text,
-          mobileNumber: _mobileController.text,
-        );
-        await libraryProvider.addUser(user);
+        userData = {
+          'name': _nameController.text,
+          'mobile': _mobileController.text,
+        };
       } else {
-        user = _selectedUser!;
+        userData = {
+          'u_id': _selectedUser!.id,
+        };
       }
 
-      final donation = Donation(
-        userId: user.id,
+      // Submit donation
+      final success = await libraryProvider.submitBookDonation(
+        isNewUser: _isNewUser,
+        userData: userData,
         books: _addedBooks,
-        certificateImagePath: _certificateImage?.path,
+        certificatePath: _certificateImage?.path,
+        librarianId: authProvider.librarianId ?? '1', // Get from auth provider
       );
 
-      await libraryProvider.addDonation(donation);
-      await libraryProvider.addBooks(_addedBooks);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('दान सफलतापूर्वक सबमिट किया गया'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('दान सफलतापूर्वक सबमिट किया गया'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('दान सबमिट करने में त्रुटि हुई'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

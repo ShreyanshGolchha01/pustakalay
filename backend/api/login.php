@@ -1,5 +1,5 @@
 <?php
-require_once '../config/database.php';
+require_once 'config/database.php';
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -27,6 +27,9 @@ if (strlen($password) < 1) {
     sendError('Password is required');
 }
 
+// Debug logging
+error_log("Login attempt - Email: $email, Password length: " . strlen($password));
+
 try {
     // Database connection
     $database = new Database();
@@ -41,14 +44,19 @@ try {
     $stmt->bindParam(':email', $email);
     $stmt->execute();
 
+    error_log("Database query executed. Rows found: " . $stmt->rowCount());
+
     if ($stmt->rowCount() == 0) {
+        error_log("No user found for email: $email");
         sendError('Invalid credentials or user not found');
     }
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    error_log("User found: " . $user['l_name'] . " with stored password: " . $user['l_password']);
 
-    // Verify password (assuming plain text for now, should use password_hash in production)
+    // Verify password (plain text comparison)
     if ($password !== $user['l_password']) {
+        error_log("Password mismatch. Provided: '$password', Stored: '" . $user['l_password'] . "'");
         sendError('Invalid credentials');
     }
 
