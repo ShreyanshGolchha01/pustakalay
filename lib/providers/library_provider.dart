@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import '../models/app_models.dart';
-import '../utils/constants.dart';
+import '../services/api_service.dart';
 
 class LibraryProvider with ChangeNotifier {
+  final ApiService _apiService = ApiService();
+  
   List<User> _users = [];
   List<Book> _books = [];
   List<Donation> _donations = [];
@@ -18,6 +19,7 @@ class LibraryProvider with ChangeNotifier {
   LibraryProvider() {
     // Initialize empty - ready for backend connection
     _loadData();
+    _loadBooksFromAPI(); // Load books from backend on startup
   }
 
   Future<void> _loadData() async {
@@ -51,6 +53,24 @@ class LibraryProvider with ChangeNotifier {
     }
   }
 
+  // Load books from API
+  Future<void> _loadBooksFromAPI() async {
+    try {
+      print('=== LOADING BOOKS FROM API ===');
+      final apiBooks = await _apiService.searchBooks();
+      if (apiBooks != null && apiBooks.isNotEmpty) {
+        print('Loaded ${apiBooks.length} books from API');
+        _books = apiBooks;
+        await _saveData(); // Save to local storage
+        notifyListeners();
+      } else {
+        print('No books loaded from API');
+      }
+    } catch (e) {
+      print('Error loading books from API: $e');
+    }
+  }
+
   Future<void> _saveData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -75,52 +95,46 @@ class LibraryProvider with ChangeNotifier {
   // User Management
   Future<User?> findUserByMobile(String mobileNumber) async {
     try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.searchUserEndpoint}?mobile=$mobileNumber'),
-        headers: ApiConstants.defaultHeaders,
-      ).timeout(ApiConstants.requestTimeout);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          return User.fromApiJson(data['data']);
-        }
-      }
-      return null;
+      return await _apiService.searchDonor(mobileNumber);
     } catch (e) {
       print('Error finding user: $e');
       return null;
     }
   }
 
-  Future<void> addUser(User user) async {
-    // TODO: Replace with actual API call
-    // final response = await http.post(
-    //   Uri.parse('${baseUrl}/api/users'),
-    //   headers: {'Content-Type': 'application/json'},
-    //   body: jsonEncode(user.toJson()),
-    // );
-    
-    _users.add(user);
-    await _saveData();
-    notifyListeners();
+  Future<bool> addUser(User user, String librarianId) async {
+    try {
+      final result = await _apiService.addDonor(
+        user.name,
+        user.mobileNumber,
+        librarianId,
+      );
+      
+      if (result != null && result['success'] == true) {
+        _users.add(user);
+        await _saveData();
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error adding user: $e');
+      return false;
+    }
   }
 
   // Book Management
-  Future<void> addBooks(List<Book> newBooks) async {
-    // TODO: Replace with actual API call
-    // final response = await http.post(
-    //   Uri.parse('${baseUrl}/api/books/bulk'),
-    //   headers: {'Content-Type': 'application/json'},
-    //   body: jsonEncode(newBooks.map((book) => book.toJson()).toList()),
-    // );
-    
-    _books.addAll(newBooks);
-    await _saveData();
-    notifyListeners();
+  Future<List<Book>?> searchBooks(String query, {String? librarianId}) async {
+    try {
+      return await _apiService.searchBooks(query: query, librarianId: librarianId);
+    } catch (e) {
+      print('Error searching books: $e');
+      return null;
+    }
   }
 
-  List<Book> searchBooks(String query) {
+  // Local search method for UI (synchronous)
+  List<Book> searchBooksLocal(String query) {
     if (query.isEmpty) return _books;
     
     return _books.where((book) =>
@@ -128,6 +142,41 @@ class LibraryProvider with ChangeNotifier {
       book.author.toLowerCase().contains(query.toLowerCase()) ||
       book.genre.toLowerCase().contains(query.toLowerCase())
     ).toList();
+  }
+
+  Future<bool> addBook({
+    required String title,
+    required String author,
+    required String genre,
+    required int count,
+    required String librarianId,
+  }) async {
+    try {
+      print('=== ADDING BOOK ===');
+      print('Title: $title, Author: $author, Genre: $genre, Count: $count');
+      
+      final result = await _apiService.addBook(
+        title: title,
+        author: author,
+        genre: genre,
+        count: count,
+        librarianId: librarianId,
+      );
+      
+      print('Add book result: $result');
+      
+      if (result != null && result['success'] == true) {
+        // Refresh books from API to get the latest data
+        await _loadBooksFromAPI();
+        return true;
+      } else {
+        print('Failed to add book - API returned: $result');
+      }
+      return false;
+    } catch (e) {
+      print('Error adding book: $e');
+      return false;
+    }
   }
 
   List<Book> filterBooksByGenre(String genre) {
@@ -139,96 +188,54 @@ class LibraryProvider with ChangeNotifier {
     return _books.map((book) => book.genre).toSet().toList();
   }
 
-  // Donation Management
-  Future<bool> submitBookDonation({
-    required bool isNewUser,
-    required Map<String, dynamic> userData,
-    required List<Book> books,
-    String? certificatePath,
+  // Certificate Management
+  Future<String?> uploadCertificate({
+    required File certificateFile,
+    required String donorId,
     required String librarianId,
   }) async {
     try {
-      String? uploadedCertPath;
+      final result = await _apiService.uploadCertificate(
+        certificateFile: certificateFile,
+        donorId: donorId,
+        librarianId: librarianId,
+      );
       
-      // Upload certificate if provided
-      if (certificatePath != null) {
-        uploadedCertPath = await _uploadCertificate(File(certificatePath));
-        if (uploadedCertPath == null) {
-          print('Failed to upload certificate');
-          return false;
-        }
+      if (result != null && result['success'] == true) {
+        return result['file_path'];
       }
-
-      // Prepare request data
-      final requestData = {
-        'librarian_id': librarianId,
-        'user_data': userData,
-        'books': books.map((book) => {
-          'title': book.title,
-          'author': book.author,
-          'genre': book.genre,
-          'isbn': book.isbn,
-          'count': book.count,
-        }).toList(),
-        'is_new_user': isNewUser,
-        'certificate_path': uploadedCertPath,
-      };
-
-      // Submit to backend
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.addBooksEndpoint}'),
-        headers: ApiConstants.defaultHeaders,
-        body: jsonEncode(requestData),
-      ).timeout(ApiConstants.requestTimeout);
-
-      print('Submission response: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          // Update local data
-          _books.addAll(books);
-          await _saveData();
-          notifyListeners();
-          return true;
-        } else {
-          print('Submission failed: ${data['message']}');
-          return false;
-        }
-      } else {
-        print('HTTP Error: ${response.statusCode}');
-        return false;
-      }
+      return null;
     } catch (e) {
-      print('Submission error: $e');
-      return false;
+      print('Error uploading certificate: $e');
+      return null;
     }
   }
 
-  Future<String?> _uploadCertificate(File imageFile) async {
+  // Donation Management
+  Future<bool> submitBookDonation({
+    required String donorId,
+    required String librarianId,
+    required List<Map<String, dynamic>> books, // {book_id, count}
+    String? certificatePath,
+  }) async {
     try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.uploadCertificateEndpoint}'),
+      final result = await _apiService.addDonation(
+        donorId: donorId,
+        librarianId: librarianId,
+        books: books,
+        certificatePath: certificatePath,
       );
       
-      request.files.add(
-        await http.MultipartFile.fromPath('certificate', imageFile.path),
-      );
-      
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        final responseData = await response.stream.bytesToString();
-        final data = jsonDecode(responseData);
-        if (data['success'] == true) {
-          return data['data']['file_path'];
-        }
+      if (result != null && result['success'] == true) {
+        await _loadBooksFromAPI(); // Refresh books with updated counts
+        notifyListeners();
+        return true;
       }
+      return false;
     } catch (e) {
-      print('Upload error: $e');
+      print('Error submitting donation: $e');
+      return false;
     }
-    return null;
   }
 
   Future<void> addDonation(Donation donation) async {
@@ -238,7 +245,17 @@ class LibraryProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Statistics
+  // Dashboard Statistics
+  Future<Map<String, dynamic>?> getDashboardStats({String? librarianId}) async {
+    try {
+      return await _apiService.getDashboardStats(librarianId: librarianId);
+    } catch (e) {
+      print('Error getting dashboard stats: $e');
+      return null;
+    }
+  }
+
+  // Local Statistics (for offline fallback)
   LibraryStats getLibraryStats() {
     final totalBooks = _books.fold<int>(0, (sum, book) => sum + book.count);
     final totalDonations = _donations.length;
@@ -272,5 +289,16 @@ class LibraryProvider with ChangeNotifier {
     final sortedDonations = List<Donation>.from(_donations);
     sortedDonations.sort((a, b) => b.donationDate.compareTo(a.donationDate));
     return sortedDonations.take(limit).toList();
+  }
+
+  // Refresh books from API
+  Future<void> refreshBooksFromAPI() async {
+    await _loadBooksFromAPI();
+  }
+
+  // Refresh all data from API
+  Future<void> refreshAllData() async {
+    await _loadBooksFromAPI();
+    // Add other refresh methods here when needed
   }
 }

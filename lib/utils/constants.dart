@@ -5,14 +5,13 @@ class ApiConstants {
   
   // API Endpoints
   static const String loginEndpoint = '/p_login.php';
-  static const String searchUserEndpoint = '/p_search_user.php';
-  static const String addBooksEndpoint = '/p_add_books.php';
-  static const String uploadCertificateEndpoint = '/p_upload_certificate.php';
-  static const String logoutEndpoint = '/p_logout.php';
-  static const String usersEndpoint = '/p_users.php';
-  static const String booksEndpoint = '/p_books.php';
-  static const String donationsEndpoint = '/p_donations.php';
-  static const String statsEndpoint = '/p_stats.php';
+  static const String searchDonorEndpoint = '/search_donor.php';
+  static const String addDonorEndpoint = '/add_donor.php';
+  static const String searchBooksEndpoint = '/search_books.php';
+  static const String addBookEndpoint = '/add_book.php';
+  static const String uploadCertificateEndpoint = '/upload_certificate.php';
+  static const String addDonationEndpoint = '/add_donation.php';
+  static const String dashboardEndpoint = '/dashboard.php';
 
   // Headers
   static const Map<String, String> defaultHeaders = {

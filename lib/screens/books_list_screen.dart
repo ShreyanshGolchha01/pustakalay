@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/library_provider.dart';
+import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import '../utils/app_theme.dart';
 import '../models/app_models.dart';
 
@@ -15,6 +16,8 @@ class _BooksListScreenState extends State<BooksListScreen> {
   final _searchController = TextEditingController();
   String _selectedGenre = '';
   List<Book> _filteredBooks = [];
+  List<Book> _allBooks = []; // Store all books from API
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -22,35 +25,115 @@ class _BooksListScreenState extends State<BooksListScreen> {
     _loadBooks();
   }
 
-  void _loadBooks() {
-    final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
-    _filteredBooks = libraryProvider.books;
+  void _loadBooks() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('=== LOADING ALL BOOKS FROM API ===');
+      final apiService = ApiService();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Fetch all books (empty query returns all books)
+      final books = await apiService.searchBooks(
+        librarianId: authProvider.librarianId,
+      );
+      
+      print('Books received from API: ${books?.length ?? 0}');
+      
+      if (books != null) {
+        setState(() {
+          _allBooks = books;
+          _filteredBooks = books;
+          _isLoading = false;
+        });
+        print('Books loaded successfully: ${_allBooks.length}');
+      } else {
+        setState(() {
+          _allBooks = [];
+          _filteredBooks = [];
+          _isLoading = false;
+        });
+        print('No books received from API');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('पुस्तकों को लोड करने में त्रुटि'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error loading books: $e');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('त्रुटि: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  void _searchBooks(String query) {
-    final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
-    setState(() {
-      if (query.isEmpty && _selectedGenre.isEmpty) {
-        _filteredBooks = libraryProvider.books;
+  void _searchBooks(String query) async {
+    if (query.isEmpty && _selectedGenre.isEmpty) {
+      setState(() {
+        _filteredBooks = _allBooks;
+      });
+      return;
+    }
+    
+    try {
+      List<Book> searchResults;
+      
+      if (query.isEmpty) {
+        searchResults = _allBooks;
       } else {
-        _filteredBooks = libraryProvider.searchBooks(query);
-        if (_selectedGenre.isNotEmpty) {
-          _filteredBooks = _filteredBooks
-              .where((book) => book.genre == _selectedGenre)
-              .toList();
-        }
+        searchResults = _allBooks.where((book) =>
+          book.title.toLowerCase().contains(query.toLowerCase()) ||
+          book.author.toLowerCase().contains(query.toLowerCase()) ||
+          book.genre.toLowerCase().contains(query.toLowerCase())
+        ).toList();
       }
-    });
+      
+      if (_selectedGenre.isNotEmpty) {
+        searchResults = searchResults
+            .where((book) => book.genre == _selectedGenre)
+            .toList();
+      }
+      
+      setState(() {
+        _filteredBooks = searchResults;
+      });
+    } catch (e) {
+      print('Error searching books: $e');
+      setState(() {
+        _filteredBooks = [];
+      });
+    }
   }
 
   void _filterByGenre(String genre) {
-    final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
     setState(() {
       _selectedGenre = genre;
+      
       if (genre.isEmpty) {
-        _filteredBooks = libraryProvider.searchBooks(_searchController.text);
+        // If no genre filter, apply only search filter
+        if (_searchController.text.isEmpty) {
+          _filteredBooks = _allBooks;
+        } else {
+          _filteredBooks = _allBooks.where((book) =>
+            book.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+            book.author.toLowerCase().contains(_searchController.text.toLowerCase())
+          ).toList();
+        }
       } else {
-        _filteredBooks = libraryProvider.books
+        // Apply both genre and search filters
+        _filteredBooks = _allBooks
             .where((book) =>
                 book.genre == genre &&
                 (book.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
@@ -126,94 +209,113 @@ class _BooksListScreenState extends State<BooksListScreen> {
   }
 
   Widget _buildSearchAndFilter() {
-    return Consumer<LibraryProvider>(
-      builder: (context, libraryProvider, child) {
-        final genres = libraryProvider.getUniqueGenres();
-        
-        return Container(
-          padding: EdgeInsets.all(20),
-          child: Row(
-            children: [
-              // Search Field
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'पुस्तक या लेखक खोजें...',
-                    prefixIcon: Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              _searchBooks('');
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  onChanged: _searchBooks,
-                ),
-              ),
-              
-              SizedBox(width: 12),
-              
-              // Genre Filter Dropdown
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
+    // Get unique genres from all books
+    final genres = _allBooks.map((book) => book.genre).toSet().toList();
+    genres.sort(); // Sort alphabetically
+    
+    return Container(
+      padding: EdgeInsets.all(20),
+      child: Row(
+        children: [
+          // Search Field
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'पुस्तक या लेखक खोजें...',
+                prefixIcon: Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchBooks('');
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
                 ),
-                child: DropdownButton<String>(
-                  value: _selectedGenre.isEmpty ? null : _selectedGenre,
-                  hint: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.filter_list, color: AppTheme.primaryBlue),
-                        SizedBox(width: 4),
-                        Text('फिल्टर'),
-                      ],
-                    ),
-                  ),
-                  underline: SizedBox(),
-                  borderRadius: BorderRadius.circular(12),
-                  items: [
-                    DropdownMenuItem<String>(
-                      value: '',
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('सभी'),
-                      ),
-                    ),
-                    ...genres.map((genre) => DropdownMenuItem<String>(
-                      value: genre,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(genre),
-                      ),
-                    )),
-                  ],
-                  onChanged: (value) {
-                    _filterByGenre(value ?? '');
-                  },
-                ),
+                filled: true,
+                fillColor: Colors.white,
               ),
-            ],
+              onChanged: _searchBooks,
+            ),
           ),
-        );
-      },
+          
+          SizedBox(width: 12),
+          
+          // Genre Filter Dropdown
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: DropdownButton<String>(
+              value: _selectedGenre.isEmpty ? null : _selectedGenre,
+              hint: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.filter_list, color: AppTheme.primaryBlue),
+                    SizedBox(width: 4),
+                    Text('फिल्टर'),
+                  ],
+                ),
+              ),
+              underline: SizedBox(),
+              borderRadius: BorderRadius.circular(12),
+              items: [
+                DropdownMenuItem<String>(
+                  value: '',
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('सभी'),
+                  ),
+                ),
+                ...genres.map((genre) => DropdownMenuItem<String>(
+                  value: genre,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(genre),
+                  ),
+                )),
+              ],
+              onChanged: (value) {
+                _filterByGenre(value ?? '');
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
 
   Widget _buildBooksList() {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'पुस्तकें लोड हो रही हैं...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_filteredBooks.isEmpty) {
       return Center(
         child: Column(
@@ -226,7 +328,7 @@ class _BooksListScreenState extends State<BooksListScreen> {
             ),
             SizedBox(height: 16),
             Text(
-              'कोई पुस्तक नहीं मिली',
+              _allBooks.isEmpty ? 'कोई पुस्तक उपलब्ध नहीं है' : 'कोई पुस्तक नहीं मिली',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -235,24 +337,43 @@ class _BooksListScreenState extends State<BooksListScreen> {
             ),
             SizedBox(height: 8),
             Text(
-              'अलग खोज शब्द या फिल्टर आज़माएं',
+              _allBooks.isEmpty 
+                  ? 'कृपया पहले कुछ पुस्तकें जोड़ें'
+                  : 'अलग खोज शब्द या फिल्टर आज़माएं',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[500],
               ),
             ),
+            if (_allBooks.isEmpty) ...[
+              SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadBooks,
+                icon: Icon(Icons.refresh),
+                label: Text('पुनः लोड करें'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      itemCount: _filteredBooks.length,
-      itemBuilder: (context, index) {
-        final book = _filteredBooks[index];
-        return _buildBookCard(book);
+    return RefreshIndicator(
+      onRefresh: () async {
+        _loadBooks();
       },
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _filteredBooks.length,
+        itemBuilder: (context, index) {
+          final book = _filteredBooks[index];
+          return _buildBookCard(book);
+        },
+      ),
     );
   }
 
@@ -459,7 +580,7 @@ class _BooksListScreenState extends State<BooksListScreen> {
                 SizedBox(height: 16),
                 _buildDetailRow('उपलब्ध प्रतियां', '${book.count}'),
                 SizedBox(height: 16),
-                _buildDetailRow('ISBN नंबर', book.isbn),
+                // _buildDetailRow('ISBN नंबर', book.isbn),
                 
                 SizedBox(height: 24),
                 

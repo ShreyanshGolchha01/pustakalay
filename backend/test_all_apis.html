@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pustakalaya API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: black;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏛️ Pustakalaya API Test Interface</h1>
+    <p style="text-align: center;">Test all API endpoints for the Library Management System</p>
+
+    <!-- Login Test -->
+    <div class="test-section">
+        <h2>1. 🔐 Login Test</h2>
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" id="loginEmail" value="librarian@library.gov.in" placeholder="Enter email">
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="loginPassword" value="password123" placeholder="Enter password">
+        </div>
+        <button class="test-button" onclick="testLogin()">Test Login</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+
+    <!-- Search Donor Test -->
+    <div class="test-section">
+        <h2>2. 👤 Search Donor Test</h2>
+        <div class="form-group">
+            <label>Mobile Number:</label>
+            <input type="text" id="searchMobile" value="9876543210" placeholder="Enter mobile number">
+        </div>
+        <button class="test-button" onclick="testSearchDonor()">Search Donor</button>
+        <div id="searchDonorResult" class="result"></div>
+    </div>
+
+    <!-- Add Donor Test -->
+    <div class="test-section">
+        <h2>3. ➕ Add Donor Test</h2>
+        <div class="form-group">
+            <label>Name:</label>
+            <input type="text" id="donorName" value="टेस्ट दानकर्ता" placeholder="Enter donor name">
+        </div>
+        <div class="form-group">
+            <label>Mobile:</label>
+            <input type="text" id="donorMobile" value="9876543214" placeholder="Enter mobile number">
+        </div>
+        <div class="form-group">
+            <label>Librarian ID:</label>
+            <input type="number" id="donorLibrarianId" value="1" placeholder="Enter librarian ID">
+        </div>
+        <button class="test-button" onclick="testAddDonor()">Add Donor</button>
+        <div id="addDonorResult" class="result"></div>
+    </div>
+
+    <!-- Search Books Test -->
+    <div class="test-section">
+        <h2>4. 📚 Search Books Test</h2>
+        <div class="form-group">
+            <label>Search Term (optional):</label>
+            <input type="text" id="bookSearch" value="गीता" placeholder="Enter book title or author">
+        </div>
+        <div class="form-group">
+            <label>Librarian ID (optional):</label>
+            <input type="number" id="bookLibrarianId" value="1" placeholder="Enter librarian ID">
+        </div>
+        <button class="test-button" onclick="testSearchBooks()">Search Books</button>
+        <div id="searchBooksResult" class="result"></div>
+    </div>
+
+    <!-- Add Book Test -->
+    <div class="test-section">
+        <h2>5. 📖 Add Book Test</h2>
+        <div class="form-group">
+            <label>Title:</label>
+            <input type="text" id="bookTitle" value="टेस्ट पुस्तक" placeholder="Enter book title">
+        </div>
+        <div class="form-group">
+            <label>Author:</label>
+            <input type="text" id="bookAuthor" value="टेस्ट लेखक" placeholder="Enter author name">
+        </div>
+        <div class="form-group">
+            <label>Genre:</label>
+            <select id="bookGenre">
+                <option value="धर्म">धर्म</option>
+                <option value="राजनीति">राजनीति</option>
+                <option value="इतिहास">इतिहास</option>
+                <option value="साहित्य" selected>साहित्य</option>
+                <option value="विज्ञान">विज्ञान</option>
+                <option value="उपन्यास">उपन्यास</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Count:</label>
+            <input type="number" id="bookCount" value="1" placeholder="Enter book count">
+        </div>
+        <div class="form-group">
+            <label>Librarian ID:</label>
+            <input type="number" id="bookAddLibrarianId" value="1" placeholder="Enter librarian ID">
+        </div>
+        <button class="test-button" onclick="testAddBook()">Add Book</button>
+        <div id="addBookResult" class="result"></div>
+    </div>
+
+    <!-- Upload Certificate Test -->
+    <div class="test-section">
+        <h2>6. 📄 Upload Certificate Test</h2>
+        <div class="form-group">
+            <label>Certificate Image:</label>
+            <input type="file" id="certificateFile" accept="image/*">
+        </div>
+        <div class="form-group">
+            <label>Donor ID:</label>
+            <input type="number" id="certDonorId" value="1" placeholder="Enter donor ID">
+        </div>
+        <div class="form-group">
+            <label>Librarian ID:</label>
+            <input type="number" id="certLibrarianId" value="1" placeholder="Enter librarian ID">
+        </div>
+        <button class="test-button" onclick="testUploadCertificate()">Upload Certificate</button>
+        <div id="uploadCertResult" class="result"></div>
+    </div>
+
+    <!-- Add Donation Test -->
+    <div class="test-section">
+        <h2>7. 🎁 Add Donation Test</h2>
+        <div class="form-group">
+            <label>Donor ID:</label>
+            <input type="number" id="donationDonorId" value="1" placeholder="Enter donor ID">
+        </div>
+        <div class="form-group">
+            <label>Librarian ID:</label>
+            <input type="number" id="donationLibrarianId" value="1" placeholder="Enter librarian ID">
+        </div>
+        <div class="form-group">
+            <label>Books JSON (format: [{"book_id": 1, "count": 2}]):</label>
+            <textarea id="donationBooks" rows="4">[{"book_id": 1, "count": 2}, {"book_id": 2, "count": 1}]</textarea>
+        </div>
+        <button class="test-button" onclick="testAddDonation()">Add Donation</button>
+        <div id="addDonationResult" class="result"></div>
+    </div>
+
+    <!-- Dashboard Test -->
+    <div class="test-section">
+        <h2>8. 📊 Dashboard Statistics Test</h2>
+        <div class="form-group">
+            <label>Librarian ID (optional):</label>
+            <input type="number" id="dashboardLibrarianId" value="1" placeholder="Enter librarian ID">
+        </div>
+        <button class="test-button" onclick="testDashboard()">Get Dashboard Stats</button>
+        <div id="dashboardResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost/pustakalaya/backend/api';
+
+        function formatResult(response, success = true) {
+            const timestamp = new Date().toLocaleString();
+            const statusClass = success ? 'success' : 'error';
+            return `<span class="${statusClass}">[${timestamp}] ${success ? '✅' : '❌'}</span>\n${JSON.stringify(response, null, 2)}`;
+        }
+
+        async function makeRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                const data = await response.json();
+                return { data, success: response.ok };
+            } catch (error) {
+                return { data: { error: error.message }, success: false };
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            const result = await makeRequest('/login.php', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+            
+            document.getElementById('loginResult').innerHTML = formatResult(result.data, result.success);
+        }
+
+        async function testSearchDonor() {
+            const mobile = document.getElementById('searchMobile').value;
+            
+            const result = await makeRequest('/search_donor.php', {
+                method: 'POST',
+                body: JSON.stringify({ mobile })
+            });
+            
+            document.getElementById('searchDonorResult').innerHTML = formatResult(result.data, result.success);
+        }
+
+        async function testAddDonor() {
+            const name = document.getElementById('donorName').value;
+            const mobile = document.getElementById('donorMobile').value;
+            const librarian_id = document.getElementById('donorLibrarianId').value;
+            
+            const result = await makeRequest('/add_donor.php', {
+                method: 'POST',
+                body: JSON.stringify({ name, mobile, librarian_id })
+            });
+            
+            document.getElementById('addDonorResult').innerHTML = formatResult(result.data, result.success);
+        }
+
+        async function testSearchBooks() {
+            const search = document.getElementById('bookSearch').value;
+            const librarian_id = document.getElementById('bookLibrarianId').value;
+            
+            let url = '/search_books.php?';
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+            if (librarian_id) url += `librarian_id=${librarian_id}`;
+            
+            const result = await makeRequest(url, { method: 'GET' });
+            
+            document.getElementById('searchBooksResult').innerHTML = formatResult(result.data, result.success);
+        }
+
+        async function testAddBook() {
+            const title = document.getElementById('bookTitle').value;
+            const author = document.getElementById('bookAuthor').value;
+            const genre = document.getElementById('bookGenre').value;
+            const count = document.getElementById('bookCount').value;
+            const librarian_id = document.getElementById('bookAddLibrarianId').value;
+            
+            const result = await makeRequest('/add_book.php', {
+                method: 'POST',
+                body: JSON.stringify({ title, author, genre, count, librarian_id })
+            });
+            
+            document.getElementById('addBookResult').innerHTML = formatResult(result.data, result.success);
+        }
+
+        async function testUploadCertificate() {
+            const file = document.getElementById('certificateFile').files[0];
+            const donor_id = document.getElementById('certDonorId').value;
+            const librarian_id = document.getElementById('certLibrarianId').value;
+            
+            if (!file) {
+                document.getElementById('uploadCertResult').innerHTML = formatResult({ error: 'Please select a file' }, false);
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('certificate', file);
+            formData.append('donor_id', donor_id);
+            formData.append('librarian_id', librarian_id);
+            
+            try {
+                const response = await fetch(`${API_BASE}/upload_certificate.php`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                document.getElementById('uploadCertResult').innerHTML = formatResult(data, response.ok);
+            } catch (error) {
+                document.getElementById('uploadCertResult').innerHTML = formatResult({ error: error.message }, false);
+            }
+        }
+
+        async function testAddDonation() {
+            const donor_id = document.getElementById('donationDonorId').value;
+            const librarian_id = document.getElementById('donationLibrarianId').value;
+            const booksText = document.getElementById('donationBooks').value;
+            
+            try {
+                const books = JSON.parse(booksText);
+                const result = await makeRequest('/add_donation.php', {
+                    method: 'POST',
+                    body: JSON.stringify({ donor_id, librarian_id, books })
+                });
+                
+                document.getElementById('addDonationResult').innerHTML = formatResult(result.data, result.success);
+            } catch (error) {
+                document.getElementById('addDonationResult').innerHTML = formatResult({ error: 'Invalid JSON format' }, false);
+            }
+        }
+
+        async function testDashboard() {
+            const librarian_id = document.getElementById('dashboardLibrarianId').value;
+            
+            let url = '/dashboard.php';
+            if (librarian_id) url += `?librarian_id=${librarian_id}`;
+            
+            const result = await makeRequest(url, { method: 'GET' });
+            
+            document.getElementById('dashboardResult').innerHTML = formatResult(result.data, result.success);
+        }
+    </script>
+</body>
+</html>

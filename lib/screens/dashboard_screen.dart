@@ -15,6 +15,52 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isLoadingStats = false;
+  Map<String, dynamic>? _dashboardData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  void _loadDashboardData() async {
+    setState(() {
+      _isLoadingStats = true;
+    });
+
+    try {
+      final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Get librarian ID from auth provider
+      final librarianId = authProvider.librarianId;
+      
+      print('=== LOADING DASHBOARD DATA ===');
+      print('Librarian ID: $librarianId');
+      
+      final data = await libraryProvider.getDashboardStats(librarianId: librarianId);
+      
+      print('Dashboard API Response: $data');
+      
+      setState(() {
+        _dashboardData = data;
+        _isLoadingStats = false;
+      });
+    } catch (e) {
+      print('Error loading dashboard data: $e');
+      setState(() {
+        _isLoadingStats = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('डैशबोर्ड डेटा लोड करने में त्रुटि: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,18 +216,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildStatsSection() {
     return Consumer<LibraryProvider>(
       builder: (context, libraryProvider, child) {
-        final stats = libraryProvider.getLibraryStats();
+        // Use API data if available, fallback to local data
+        final apiStats = _dashboardData;
+        final localStats = libraryProvider.getLibraryStats();
+        
+        print('=== STATS SECTION ===');
+        print('API Stats: $apiStats');
+        print('Local Stats: ${localStats.totalBooks}, ${localStats.totalDonations}, ${localStats.totalDonors}');
+        
+        // Extract values with proper fallbacks and null safety
+        int totalBooks = 0;
+        int totalCopies = 0; 
+        int totalDonations = 0;
+        int totalDonors = 0;
+        
+        if (apiStats != null) {
+          // Parse API data with enhanced type handling
+          print('=== API STATS PARSING ===');
+          print('Raw API Stats: $apiStats');
+          
+          // Helper function to safely parse integers
+          int safeParseInt(dynamic value) {
+            if (value == null) return 0;
+            if (value is int) return value;
+            if (value is String) return int.tryParse(value) ?? 0;
+            return int.tryParse(value.toString()) ?? 0;
+          }
+          
+          totalBooks = safeParseInt(apiStats['total_books']);
+          totalCopies = safeParseInt(apiStats['total_copies']);
+          totalDonations = safeParseInt(apiStats['total_donations']);
+          totalDonors = safeParseInt(apiStats['total_donors']);
+          
+          print('Final parsed values - Books: $totalBooks, Copies: $totalCopies, Donations: $totalDonations, Donors: $totalDonors');
+        } else {
+          // Fallback to local data
+          totalBooks = localStats.totalBooks;
+          totalCopies = localStats.totalBooks; // For local, use same as books
+          totalDonations = localStats.totalDonations;
+          totalDonors = localStats.totalDonors;
+          
+          print('Local Data - Books: $totalBooks, Copies: $totalCopies, Donations: $totalDonations, Donors: $totalDonors');
+        }
         
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'लाइब्रेरी आंकड़े',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryBlue,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'लाइब्रेरी आंकड़े',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                if (_isLoadingStats)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  IconButton(
+                    icon: Icon(Icons.refresh, color: AppTheme.primaryBlue),
+                    onPressed: _loadDashboardData,
+                    tooltip: 'Refresh Data',
+                  ),
+              ],
             ),
             SizedBox(height: 16),
             GridView.count(
@@ -193,28 +297,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
               childAspectRatio: 2.0,
               children: [
                 _buildStatCard(
-                  'कुल पुस्तकें',
-                  '${stats.totalBooks}',
+                  'कुल प्रतियां',
+                  totalCopies.toString(),
                   Icons.book,
-                  const Color.fromARGB(255, 26, 69, 186),
+                  AppTheme.primaryBlue,
                 ),
                 _buildStatCard(
                   'कुल दान',
-                  '${stats.totalDonations}',
+                  totalDonations.toString(),
                   Icons.volunteer_activism,
-                  const Color.fromARGB(255, 26, 69, 186),
+                  AppTheme.primaryBlue,
                 ),
                 _buildStatCard(
                   'दानकर्ता',
-                  '${stats.totalDonors}',
+                  totalDonors.toString(),
                   Icons.people,
-                  const Color.fromARGB(255, 26, 69, 186),
+                  AppTheme.primaryBlue,
                 ),
                 _buildStatCard(
-                  'विषय श्रेणी',
-                  '${stats.totalGenres}',
+                  'कुल पुस्तकें',
+                  totalBooks.toString(),
                   Icons.category,
-                  const Color.fromARGB(255, 26, 69, 186),
+                  AppTheme.primaryBlue,
                 ),
               ],
             ),

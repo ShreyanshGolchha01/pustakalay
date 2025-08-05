@@ -48,7 +48,6 @@ class Book {
   final String author;
   final String genre;
   final int count;
-  final String isbn;
 
   Book({
     String? id,
@@ -56,7 +55,6 @@ class Book {
     required this.author,
     required this.genre,
     required this.count,
-    required this.isbn,
   }) : id = id ?? Uuid().v4();
 
   Map<String, dynamic> toJson() {
@@ -66,18 +64,16 @@ class Book {
       'author': author,
       'genre': genre,
       'count': count,
-      'isbn': isbn,
     };
   }
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      id: json['id'],
-      title: json['title'],
-      author: json['author'],
-      genre: json['genre'],
-      count: json['count'],
-      isbn: json['isbn'],
+      id: (json['id'] ?? json['b_id'] ?? '').toString(),
+      title: json['title'] ?? json['b_title'] ?? '',
+      author: json['author'] ?? json['b_author'] ?? '',
+      genre: json['genre'] ?? json['b_genre'] ?? '',
+      count: int.tryParse((json['count'] ?? json['b_count'] ?? json['b_available_count'] ?? 0).toString()) ?? 0,
     );
   }
 }

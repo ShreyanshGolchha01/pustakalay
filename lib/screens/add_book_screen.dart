@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../providers/library_provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import '../utils/app_theme.dart';
 import '../models/app_models.dart';
 
@@ -19,24 +19,62 @@ class _AddBookScreenState extends State<AddBookScreen> {
   final _nameController = TextEditingController();
   final _mobileController = TextEditingController();
   final _searchMobileController = TextEditingController();
+  final _searchBookController = TextEditingController();
   
   bool _isNewUser = true;
   User? _selectedUser;
-  final List<Book> _addedBooks = [];
+  String? _createdDonorId; // Store created donor ID
+  final List<Map<String, dynamic>> _selectedBooks = []; // {book: Book, count: int}
   File? _certificateImage;
+  String? _uploadedCertificatePath; // Store uploaded certificate path
   bool _isLoading = false;
+  bool _isLoadingBooks = false;
+  bool _isCreatingDonor = false;
+  bool _isUploadingCertificate = false;
+  // bool _showBookSearch = false;
 
-  // Book form controllers
+  // Mock books database - remove when backend ready
+  final List<Book> _availableBooks = [];
+
+  // Book form controllers for adding new book
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _genreController = TextEditingController();
-  final _countController = TextEditingController();
-  final _isbnController = TextEditingController();
 
   final List<String> _commonGenres = [
     'धर्म', 'राजनीति', 'इतिहास', 'साहित्य', 'विज्ञान', 
     'कानूनी', 'उपन्यास', 'कहानी', 'काव्य', 'नाटक', 'जीवनी', 'दर्शन'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialBooks();
+  }
+
+  Future<void> _loadInitialBooks() async {
+    try {
+      print('=== LOADING INITIAL BOOKS IN ADD_BOOK_SCREEN ===');
+      final apiService = ApiService();
+      final books = await apiService.searchBooks();
+      
+      print('Books received: ${books?.length ?? 0}');
+      if (books != null) {
+        for (var book in books) {
+          print('Book: ${book.title} by ${book.author}, Count: ${book.count}');
+        }
+        setState(() {
+          _availableBooks.clear();
+          _availableBooks.addAll(books);
+        });
+        print('Available books updated: ${_availableBooks.length}');
+      } else {
+        print('No books received from API');
+      }
+    } catch (e) {
+      print('Error loading initial books: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +100,27 @@ class _AddBookScreenState extends State<AddBookScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildUserSelectionSection(),
-                        if (_selectedUser != null || _isNewUser) ...[
+                        
+                        // Only show user details section for new users
+                        if (_isNewUser) ...[
                           SizedBox(height: 24),
                           _buildUserDetailsSection(),
+                        ],
+                        
+                        // Show books section only if donor is ready
+                        if ((_isNewUser && _createdDonorId != null) || (!_isNewUser && _selectedUser != null)) ...[
                           SizedBox(height: 24),
                           _buildBooksSection(),
+                        ],
+                        
+                        // Show certificate section only if books are selected
+                        if (_selectedBooks.isNotEmpty) ...[
                           SizedBox(height: 24),
                           _buildCertificateSection(),
+                        ],
+                        
+                        // Show submit button only if everything is ready
+                        if (_selectedBooks.isNotEmpty) ...[
                           SizedBox(height: 24),
                           _buildSubmitButton(),
                         ],
@@ -162,6 +214,14 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     setState(() {
                       _isNewUser = value!;
                       _selectedUser = null;
+                      _createdDonorId = null; // Reset created donor
+                      _selectedBooks.clear(); // Reset selected books
+                      _certificateImage = null; // Reset certificate
+                      _uploadedCertificatePath = null; // Reset uploaded certificate
+                      // Clear form controllers
+                      _nameController.clear();
+                      _mobileController.clear();
+                      _searchMobileController.clear();
                     });
                   },
                 ),
@@ -179,6 +239,14 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     setState(() {
                       _isNewUser = value!;
                       _selectedUser = null;
+                      _createdDonorId = null; // Reset created donor
+                      _selectedBooks.clear(); // Reset selected books
+                      _certificateImage = null; // Reset certificate
+                      _uploadedCertificatePath = null; // Reset uploaded certificate
+                      // Clear form controllers
+                      _nameController.clear();
+                      _mobileController.clear();
+                      _searchMobileController.clear();
                     });
                   },
                 ),
@@ -250,8 +318,81 @@ class _AddBookScreenState extends State<AddBookScreen> {
   }
 
   Widget _buildUserDetailsSection() {
-    if (!_isNewUser && _selectedUser != null) return SizedBox.shrink();
+    // Hide completely for existing user selection
+    if (!_isNewUser) return SizedBox.shrink();
     
+    // If donor is already created, show confirmation
+    if (_createdDonorId != null) {
+      return Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'दानकर्ता विवरण',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryBlue,
+              ),
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.green,
+                    child: Icon(Icons.check, color: Colors.white),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'दानकर्ता सफलतापूर्वक जोड़ा गया',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                        Text(
+                          '${_nameController.text} • ${_mobileController.text}',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        Text(
+                          'ID: $_createdDonorId',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Show form for new user only
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -283,6 +424,9 @@ class _AddBookScreenState extends State<AddBookScreen> {
               labelText: 'पूरा नाम *',
               prefixIcon: Icon(Icons.person),
             ),
+            onChanged: (value) {
+              setState(() {}); // Trigger rebuild to enable/disable button
+            },
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'कृपया नाम दर्ज करें';
@@ -294,10 +438,28 @@ class _AddBookScreenState extends State<AddBookScreen> {
           TextFormField(
             controller: _mobileController,
             keyboardType: TextInputType.phone,
+            maxLength: 10,
             decoration: InputDecoration(
               labelText: 'मोबाइल नंबर *',
               prefixIcon: Icon(Icons.phone),
+              counterText: '', // Hide character counter
+              helperText: '10 अंकों का मोबाइल नंबर दर्ज करें',
             ),
+            onChanged: (value) {
+              // Only allow numbers and limit to 10 digits
+              if (value.length <= 10 && RegExp(r'^[0-9]*$').hasMatch(value)) {
+                setState(() {}); // Trigger rebuild to enable/disable button
+              } else if (value.length > 10 || !RegExp(r'^[0-9]*$').hasMatch(value)) {
+                // Remove invalid characters or excess characters
+                final cleanValue = value.replaceAll(RegExp(r'[^0-9]'), '');
+                final truncatedValue = cleanValue.length > 10 ? cleanValue.substring(0, 10) : cleanValue;
+                _mobileController.text = truncatedValue;
+                _mobileController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: truncatedValue.length),
+                );
+                setState(() {});
+              }
+            },
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'कृपया मोबाइल नंबर दर्ज करें';
@@ -305,12 +467,120 @@ class _AddBookScreenState extends State<AddBookScreen> {
               if (value.length != 10) {
                 return 'कृपया 10 अंक का मोबाइल नंबर दर्ज करें';
               }
+              if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                return 'कृपया केवल संख्या दर्ज करें';
+              }
               return null;
             },
+          ),
+          SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _canCreateDonor() && !_isCreatingDonor ? _createDonor : null,
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: _isCreatingDonor
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text('दानकर्ता जोड़ा जा रहा है...'),
+                      ],
+                    )
+                  : Text(
+                      'दानकर्ता जोड़ें',
+                      style: TextStyle(fontSize: 16),
+                    ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  bool _canCreateDonor() {
+    return _nameController.text.trim().isNotEmpty && 
+           _mobileController.text.trim().length == 10 &&
+           RegExp(r'^[0-9]+$').hasMatch(_mobileController.text.trim());
+  }
+
+  Future<void> _createDonor() async {
+    setState(() {
+      _isCreatingDonor = true;
+    });
+
+    try {
+      final apiService = ApiService();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      print('=== CREATING NEW DONOR ===');
+      print('Name: ${_nameController.text}');
+      print('Mobile: ${_mobileController.text}');
+      print('Librarian ID: ${authProvider.librarianId}');
+      
+      final result = await apiService.addDonor(
+        _nameController.text.trim(),
+        _mobileController.text.trim(),
+        authProvider.librarianId ?? '',
+      );
+      
+      print('Create donor result: $result');
+      
+      if (result != null && result['success'] == true) {
+        // Get donor ID from response
+        final donorId = (result['data']['u_id'] ?? 
+                        result['data']['donor_id'] ?? 
+                        result['u_id'] ?? 
+                        result['donor_id']).toString();
+        
+        setState(() {
+          _createdDonorId = donorId;
+          _isCreatingDonor = false;
+        });
+        
+        print('Donor created successfully with ID: $donorId');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('दानकर्ता सफलतापूर्वक जोड़ा गया'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _isCreatingDonor = false;
+        });
+        
+        final errorMessage = result?['message'] ?? 'Unknown error';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('दानकर्ता जोड़ने में त्रुटि: $errorMessage'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isCreatingDonor = false;
+      });
+      
+      print('Error creating donor: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('त्रुटि: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildBooksSection() {
@@ -334,7 +604,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'पुस्तकें जोड़ें',
+                'पुस्तकें चुनें',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -342,9 +612,9 @@ class _AddBookScreenState extends State<AddBookScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: _showAddBookDialog,
-                icon: Icon(Icons.add, size: 16),
-                label: Text('जोड़ें'),
+                onPressed: _showBookSearchDialog,
+                icon: Icon(Icons.search, size: 16),
+                label: Text('खोजें'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -352,7 +622,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
             ],
           ),
           SizedBox(height: 16),
-          if (_addedBooks.isEmpty)
+          if (_selectedBooks.isEmpty)
             Container(
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -365,18 +635,25 @@ class _AddBookScreenState extends State<AddBookScreen> {
                   Icon(Icons.book_outlined, size: 48, color: Colors.grey[400]),
                   SizedBox(height: 8),
                   Text(
-                    'अभी तक कोई पुस्तक नहीं जोड़ी गई',
+                    'अभी तक कोई पुस्तक नहीं चुनी गई',
                     style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'पुस्तक खोजने के लिए "खोजें" बटन दबाएं',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                   ),
                 ],
               ),
             )
           else
             Column(
-              children: _addedBooks.asMap().entries.map((entry) {
+              children: _selectedBooks.asMap().entries.map((entry) {
                 final index = entry.key;
-                final book = entry.value;
-                return _buildBookItem(book, index);
+                final bookData = entry.value;
+                final book = bookData['book'] as Book;
+                final count = bookData['count'] as int;
+                return _buildSelectedBookItem(book, count, index);
               }).toList(),
             ),
         ],
@@ -384,7 +661,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
     );
   }
 
-  Widget _buildBookItem(Book book, int index) {
+  Widget _buildSelectedBookItem(Book book, int count, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.all(16),
@@ -417,10 +694,26 @@ class _AddBookScreenState extends State<AddBookScreen> {
                   ),
                 ),
                 Text(
-                  '${book.author} • ${book.genre} • ${book.count} प्रतियां',
+                  '${book.author} • ${book.genre}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
+                  ),
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$count प्रतियां',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -429,7 +722,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
           IconButton(
             onPressed: () {
               setState(() {
-                _addedBooks.removeAt(index);
+                _selectedBooks.removeAt(index);
               });
             },
             icon: Icon(Icons.delete, color: Colors.red),
@@ -465,7 +758,45 @@ class _AddBookScreenState extends State<AddBookScreen> {
             ),
           ),
           SizedBox(height: 16),
-          if (_certificateImage == null)
+          
+          // Show success if certificate is already uploaded
+          if (_uploadedCertificatePath != null)
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.green,
+                    child: Icon(Icons.check, color: Colors.white),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'प्रमाणपत्र सफलतापूर्वक अपलोड किया गया',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                        Text(
+                          _uploadedCertificatePath!,
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (_certificateImage == null)
             InkWell(
               onTap: _pickCertificateImage,
               child: Container(
@@ -494,52 +825,160 @@ class _AddBookScreenState extends State<AddBookScreen> {
               ),
             )
           else
-            Container(
-              width: double.infinity,
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.lightBlue),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  children: [
-                    Image.file(
-                      _certificateImage!,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: CircleAvatar(
-                        backgroundColor: Colors.red,
-                        radius: 16,
-                        child: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _certificateImage = null;
-                            });
-                          },
-                          icon: Icon(Icons.close, color: Colors.white, size: 16),
-                          padding: EdgeInsets.zero,
+            Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.lightBlue),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      children: [
+                        Image.file(
+                          _certificateImage!,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
                         ),
-                      ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.red,
+                            radius: 16,
+                            child: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _certificateImage = null;
+                                });
+                              },
+                              icon: Icon(Icons.close, color: Colors.white, size: 16),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _canUploadCertificate() && !_isUploadingCertificate ? _uploadCertificate : null,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isUploadingCertificate
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text('अपलोड हो रहा है...'),
+                            ],
+                          )
+                        : Text(
+                            'प्रमाणपत्र अपलोड करें',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                  ),
+                ),
+              ],
             ),
         ],
       ),
     );
   }
 
+  bool _canUploadCertificate() {
+    final donorId = _isNewUser ? _createdDonorId : _selectedUser?.id;
+    return _certificateImage != null && donorId != null;
+  }
+
+  Future<void> _uploadCertificate() async {
+    setState(() {
+      _isUploadingCertificate = true;
+    });
+
+    try {
+      final apiService = ApiService();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final donorId = _isNewUser ? _createdDonorId : _selectedUser?.id;
+      
+      print('=== UPLOADING CERTIFICATE ===');
+      print('Certificate file path: ${_certificateImage!.path}');
+      print('Donor ID: $donorId');
+      print('Librarian ID: ${authProvider.librarianId}');
+      
+      final uploadResult = await apiService.uploadCertificate(
+        certificateFile: _certificateImage!,
+        donorId: donorId!,
+        librarianId: authProvider.librarianId ?? '',
+      );
+      
+      print('Upload result: $uploadResult');
+      
+      if (uploadResult != null && uploadResult['success'] == true) {
+        final certificateFilename = uploadResult['data']['file_path'] ?? 
+                              uploadResult['data']['filename'] ?? 
+                              uploadResult['filename'] ?? 
+                              uploadResult['file_path'];
+        
+        setState(() {
+          _uploadedCertificatePath = certificateFilename;
+          _isUploadingCertificate = false;
+        });
+        
+        print('Certificate uploaded successfully: $certificateFilename');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('प्रमाणपत्र सफलतापूर्वक अपलोड किया गया'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _isUploadingCertificate = false;
+        });
+        
+        final errorMessage = uploadResult?['message'] ?? 'Unknown error';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('प्रमाणपत्र अपलोड करने में त्रुटि: $errorMessage'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingCertificate = false;
+      });
+      
+      print('Error uploading certificate: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('त्रुटि: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Widget _buildSubmitButton() {
-    final canSubmit = (_isNewUser || _selectedUser != null) && 
-                     _addedBooks.isNotEmpty;
+    final donorId = _isNewUser ? _createdDonorId : _selectedUser?.id;
+    final canSubmit = donorId != null && _selectedBooks.isNotEmpty;
     
     return SizedBox(
       width: double.infinity,
@@ -561,7 +1000,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     ),
                   ),
                   SizedBox(width: 12),
-                  Text('सबमिट हो रहा है...'),
+                  Text('दान सबमिट हो रहा है...'),
                 ],
               )
             : Text(
@@ -573,24 +1012,352 @@ class _AddBookScreenState extends State<AddBookScreen> {
   }
 
   Future<void> _searchUser() async {
-    final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
-    final user = await libraryProvider.findUserByMobile(_searchMobileController.text);
-    
-    setState(() {
-      _selectedUser = user;
-    });
-
-    if (user == null) {
+    if (_searchMobileController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('इस मोबाइल नंबर के साथ कोई उपयोगकर्ता नहीं मिला'),
+          content: Text('कृपया मोबाइल नंबर दर्ज करें'),
           backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final apiService = ApiService();
+      final user = await apiService.searchDonor(_searchMobileController.text.trim());
+      
+      setState(() {
+        _selectedUser = user;
+        _isLoading = false;
+      });
+      
+      if (user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('दानकर्ता मिल गया: ${user.name}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('इस मोबाइल नंबर के साथ कोई दानकर्ता नहीं मिला'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _selectedUser = null;
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('खोज में त्रुटि: $e'),
+          backgroundColor: Colors.red,
         ),
       );
     }
   }
 
-  void _showAddBookDialog() {
+  Future<void> _searchBooks(String query) async {
+    print('=== SEARCHING BOOKS ===');
+    print('Query: "$query"');
+    print('Current available books: ${_availableBooks.length}');
+    
+    // If query is empty, clear the books list
+    if (query.trim().isEmpty) {
+      setState(() {
+        _availableBooks.clear();
+        _isLoadingBooks = false;
+      });
+      return;
+    }
+    
+    setState(() {
+      _isLoadingBooks = true;
+    });
+
+    try {
+      final apiService = ApiService();
+      final books = await apiService.searchBooks(query: query.trim());
+      
+      print('Search API returned: ${books?.length ?? 0} books');
+      
+      setState(() {
+        _availableBooks.clear();
+        if (books != null) {
+          _availableBooks.addAll(books);
+          print('Updated available books: ${_availableBooks.length}');
+          for (var book in _availableBooks) {
+            print('- ${book.title} by ${book.author}');
+          }
+        } else {
+          print('No books returned from API');
+        }
+        _isLoadingBooks = false;
+      });
+    } catch (e) {
+      print('Error in _searchBooks: $e');
+      setState(() {
+        _isLoadingBooks = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('पुस्तक खोज में त्रुटि: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showBookSearchDialog() {
+    // Don't load books initially - only when user searches
+    print('=== OPENING BOOK SEARCH DIALOG ===');
+    print('Available books before dialog: ${_availableBooks.length}');
+    
+    // Clear search controller and available books for fresh start
+    _searchBookController.clear();
+    setState(() {
+      _availableBooks.clear();
+    });
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            height: 600,
+            padding: EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'पुस्तक खोजें',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: _searchBookController,
+                  decoration: InputDecoration(
+                    labelText: 'पुस्तक का नाम या लेखक खोजें',
+                    prefixIcon: Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        print('Search button pressed: ${_searchBookController.text}');
+                        _searchBooks(_searchBookController.text).then((_) {
+                          setDialogState(() {}); // Update dialog state
+                        });
+                      },
+                      icon: Icon(Icons.search),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    print('Search text changed: $value');
+                    _searchBooks(value).then((_) {
+                      setDialogState(() {}); // Update dialog state
+                    });
+                  },
+                ),
+                SizedBox(height: 16),
+                Expanded(
+                  child: _isLoadingBooks
+                      ? Center(child: CircularProgressIndicator())
+                      : _availableBooks.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.search, size: 64, color: Colors.grey[400]),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    _searchBookController.text.trim().isEmpty 
+                                        ? 'पुस्तक खोजने के लिए ऊपर टाइप करें'
+                                        : 'कोई पुस्तक नहीं मिली',
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                                  ),
+                                  SizedBox(height: 8),
+                                  if (_searchBookController.text.trim().isNotEmpty)
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        _showAddNewBookDialog();
+                                      },
+                                      icon: Icon(Icons.add),
+                                      label: Text('नई पुस्तक जोड़ें'),
+                                    ),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: _availableBooks.length,
+                              itemBuilder: (context, index) {
+                                final book = _availableBooks[index];
+                                return _buildSearchResultItem(book);
+                              },
+                            ),
+                ),
+                if (_availableBooks.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 16),
+                    child: Center(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showAddNewBookDialog();
+                        },
+                        icon: Icon(Icons.add),
+                        label: Text('नई पुस्तक जोड़ें'),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResultItem(Book book) {
+    print('Building search result item for: ${book.title}');
+    return Container(
+      margin: EdgeInsets.only(bottom: 8),
+      child: Card(
+        elevation: 2,
+        child: ListTile(
+          leading: Container(
+            width: 40,
+            height: 50,
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(Icons.book, color: Colors.white, size: 20),
+          ),
+          title: Text(
+            book.title,
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${book.author} • ${book.genre}'),
+              Text('उपलब्ध: ${book.count} प्रतियां', 
+                style: TextStyle(fontSize: 12, color: Colors.blue[600]),
+              ),
+            ],
+          ),
+          trailing: ElevatedButton(
+            onPressed: () => _selectBookWithCount(book),
+            child: Text('चुनें'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _selectBookWithCount(Book book) {
+    Navigator.pop(context); // Close search dialog
+    _showBookCountDialog(book);
+  }
+
+  void _showBookCountDialog(Book book) {
+    final countController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('प्रतियों की संख्या'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('पुस्तक: ${book.title}'),
+            Text('लेखक: ${book.author}'),
+            SizedBox(height: 16),
+            TextField(
+              controller: countController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'कितनी प्रतियां दान की जा रही हैं?',
+                prefixIcon: Icon(Icons.numbers),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('रद्द करें'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (countController.text.isNotEmpty) {
+                final count = int.tryParse(countController.text);
+                if (count != null && count > 0) {
+                  // Validate book ID before adding
+                  if (book.id.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('पुस्तक ID गुम है। कृपया पुस्तक फिर से चुनें।'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                  
+                  setState(() {
+                    _selectedBooks.add({
+                      'book': book,
+                      'count': count,
+                    });
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('पुस्तक सफलतापूर्वक जोड़ी गई'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('कृपया वैध संख्या दर्ज करें'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text('जोड़ें'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddNewBookDialog() {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -662,45 +1429,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _countController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'प्रतियों की संख्या *',
-                    prefixIcon: Icon(Icons.numbers),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'कृपया संख्या दर्ज करें';
-                    }
-                    final count = int.tryParse(value);
-                    if (count == null || count <= 0) {
-                      return 'कृपया वैध संख्या दर्ज करें';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _isbnController,
-                  decoration: InputDecoration(
-                    labelText: 'ISBN नंबर *',
-                    prefixIcon: Icon(Icons.qr_code),
-                    hintText: '978-81-XXXX-XXX-X',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'कृपया ISBN नंबर दर्ज करें';
-                    }
-                    // Basic ISBN format validation
-                    final isbnPattern = RegExp(r'^[0-9\-]+$');
-                    if (!isbnPattern.hasMatch(value)) {
-                      return 'कृपया वैध ISBN नंबर दर्ज करें';
-                    }
-                    return null;
-                  },
-                ),
                 SizedBox(height: 24),
                 Row(
                   children: [
@@ -716,7 +1444,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _addBook,
+                        onPressed: _addNewBook,
                         child: Text('जोड़ें'),
                       ),
                     ),
@@ -730,29 +1458,124 @@ class _AddBookScreenState extends State<AddBookScreen> {
     );
   }
 
-  void _addBook() {
+  Future<void> _addNewBook() async {
     if (_formKey.currentState!.validate()) {
-      final book = Book(
-        title: _titleController.text,
-        author: _authorController.text,
-        genre: _genreController.text,
-        count: int.parse(_countController.text),
-        isbn: _isbnController.text,
-      );
-
       setState(() {
-        _addedBooks.add(book);
+        _isLoading = true;
       });
 
-      Navigator.pop(context);
-      _clearBookForm();
+      try {
+        final apiService = ApiService();
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        
+        print('=== ADDING NEW BOOK ===');
+        print('Title: ${_titleController.text}');
+        print('Author: ${_authorController.text}');
+        print('Genre: ${_genreController.text}');
+        print('Librarian ID: ${authProvider.librarianId}');
+        
+        final result = await apiService.addBook(
+          title: _titleController.text,
+          author: _authorController.text,
+          genre: _genreController.text,
+          count: 1, // Default count for new book
+          librarianId: authProvider.librarianId ?? '',
+        );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('पुस्तक सफलतापूर्वक जोड़ी गई'),
-          backgroundColor: Colors.green,
-        ),
-      );
+        print('Add book API result: $result');
+
+        if (result != null && result['success'] == true) {
+          // Create Book object from API response with null safety
+          final bookData = result['data'];
+          print('Book data from API: $bookData');
+          print('Full API result: $result');
+          
+          // Extract book ID from multiple possible locations
+          String bookId = '';
+          if (bookData != null) {
+            bookId = (bookData['b_id'] ?? 
+                     bookData['id'] ?? 
+                     bookData['book_id'] ?? '').toString();
+          }
+          
+          // If still empty, check root level
+          if (bookId.isEmpty) {
+            bookId = (result['b_id'] ?? 
+                     result['id'] ?? 
+                     result['book_id'] ?? '').toString();
+          }
+          
+          print('Extracted book ID: $bookId');
+          
+          final book = Book(
+            id: bookId,
+            title: bookData?['b_title'] ?? bookData?['title'] ?? _titleController.text,
+            author: bookData?['b_author'] ?? bookData?['author'] ?? _authorController.text,
+            genre: bookData?['b_genre'] ?? bookData?['genre'] ?? _genreController.text,
+            count: int.tryParse((bookData?['b_available_count'] ?? 
+                                bookData?['b_count'] ?? 
+                                bookData?['count'] ?? 1).toString()) ?? 1,
+          );
+
+          print('Created book object: ${book.title} by ${book.author}, ID: ${book.id}');
+
+          // Validate book ID
+          if (book.id.isEmpty) {
+            print('ERROR: Book ID is empty after extraction');
+            print('BookData keys: ${bookData?.keys}');
+            print('Result keys: ${result.keys}');
+            throw Exception('पुस्तक ID प्राप्त नहीं हुई API से। कृपया पुनः प्रयास करें।');
+          }
+
+          // Add to available books list
+          setState(() {
+            _availableBooks.add(book);
+            _isLoading = false;
+          });
+
+          Navigator.pop(context);
+          _clearBookForm();
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('नई पुस्तक सफलतापूर्वक जोड़ी गई'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Now show count dialog for this new book
+          _showBookCountDialog(book);
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          final errorMessage = result?['message'] ?? 'Unknown error';
+          print('API returned success=false: $errorMessage');
+          print('Full result: $result');
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('पुस्तक जोड़ने में त्रुटि: $errorMessage'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        print('Error in _addNewBook: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('त्रुटि: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -760,8 +1583,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
     _titleController.clear();
     _authorController.clear();
     _genreController.clear();
-    _countController.clear();
-    _isbnController.clear();
   }
 
   Future<void> _pickCertificateImage() async {
@@ -781,48 +1602,71 @@ class _AddBookScreenState extends State<AddBookScreen> {
     });
 
     try {
-      final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+      final apiService = ApiService();
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      // Prepare user data
-      Map<String, dynamic> userData;
-      if (_isNewUser) {
-        userData = {
-          'name': _nameController.text,
-          'mobile': _mobileController.text,
+      // Get donor ID (either created or selected)
+      final donorId = _isNewUser ? _createdDonorId : _selectedUser?.id;
+      
+      if (donorId == null) {
+        throw Exception('दानकर्ता ID उपलब्ध नहीं है');
+      }
+
+      print('=== SUBMITTING DONATION ===');
+      print('Donor ID: $donorId');
+      print('Librarian ID: ${authProvider.librarianId}');
+      print('Certificate Path: $_uploadedCertificatePath');
+
+      // Prepare books data
+      final booksData = _selectedBooks.map((bookData) {
+        final book = bookData['book'] as Book;
+        final count = bookData['count'] as int;
+        
+        // Validate book ID
+        if (book.id.isEmpty) {
+          throw Exception('पुस्तक ID गुम है: ${book.title}');
+        }
+        
+        return {
+          'book_id': book.id,
+          'count': count,
         };
-      } else {
-        userData = {
-          'u_id': _selectedUser!.id,
-        };
+      }).toList();
+
+      print('Books data: $booksData');
+
+      // Validate all book IDs
+      for (var bookData in booksData) {
+        if (bookData['book_id'] == null || bookData['book_id'].toString().isEmpty) {
+          throw Exception('एक या अधिक पुस्तकों की ID गुम है');
+        }
       }
 
       // Submit donation
-      final success = await libraryProvider.submitBookDonation(
-        isNewUser: _isNewUser,
-        userData: userData,
-        books: _addedBooks,
-        certificatePath: _certificateImage?.path,
-        librarianId: authProvider.librarianId ?? '1', // Get from auth provider
+      final donationResult = await apiService.addDonation(
+        donorId: donorId,
+        librarianId: authProvider.librarianId ?? '',
+        books: booksData,
+        certificatePath: _uploadedCertificatePath,
       );
 
-      if (success) {
+      print('Donation result: $donationResult');
+
+      if (donationResult != null && donationResult['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('दान सफलतापूर्वक सबमिट किया गया'),
             backgroundColor: Colors.green,
           ),
         );
+        
         Navigator.pop(context);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('दान सबमिट करने में त्रुटि हुई'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        final errorMessage = donationResult?['message'] ?? 'Unknown error';
+        throw Exception('दान सबमिट करने में त्रुटि: $errorMessage');
       }
     } catch (e) {
+      print('Error in _submitDonation: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('त्रुटि: $e'),
@@ -841,11 +1685,10 @@ class _AddBookScreenState extends State<AddBookScreen> {
     _nameController.dispose();
     _mobileController.dispose();
     _searchMobileController.dispose();
+    _searchBookController.dispose();
     _titleController.dispose();
     _authorController.dispose();
     _genreController.dispose();
-    _countController.dispose();
-    _isbnController.dispose();
     super.dispose();
   }
 }
