@@ -49,25 +49,25 @@ class LibraryProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error loading data: $e');
+      // print('Error loading data: $e');
     }
   }
 
   // Load books from API
   Future<void> _loadBooksFromAPI() async {
     try {
-      print('=== LOADING BOOKS FROM API ===');
+      // print('=== LOADING BOOKS FROM API ===');
       final apiBooks = await _apiService.searchBooks();
       if (apiBooks != null && apiBooks.isNotEmpty) {
-        print('Loaded ${apiBooks.length} books from API');
+        // print('Loaded ${apiBooks.length} books from API');
         _books = apiBooks;
         await _saveData(); // Save to local storage
         notifyListeners();
       } else {
-        print('No books loaded from API');
+        // print('No books loaded from API');
       }
     } catch (e) {
-      print('Error loading books from API: $e');
+      // print('Error loading books from API: $e');
     }
   }
 
@@ -88,7 +88,7 @@ class LibraryProvider with ChangeNotifier {
         jsonEncode(_donations.map((donation) => donation.toJson()).toList()));
         
     } catch (e) {
-      print('Error saving data: $e');
+      // print('Error saving data: $e');
     }
   }
 
@@ -97,7 +97,7 @@ class LibraryProvider with ChangeNotifier {
     try {
       return await _apiService.searchDonor(mobileNumber);
     } catch (e) {
-      print('Error finding user: $e');
+      // print('Error finding user: $e');
       return null;
     }
   }
@@ -118,7 +118,7 @@ class LibraryProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Error adding user: $e');
+      // print('Error adding user: $e');
       return false;
     }
   }
@@ -128,7 +128,7 @@ class LibraryProvider with ChangeNotifier {
     try {
       return await _apiService.searchBooks(query: query, librarianId: librarianId);
     } catch (e) {
-      print('Error searching books: $e');
+      // print('Error searching books: $e');
       return null;
     }
   }
@@ -152,8 +152,8 @@ class LibraryProvider with ChangeNotifier {
     required String librarianId,
   }) async {
     try {
-      print('=== ADDING BOOK ===');
-      print('Title: $title, Author: $author, Genre: $genre, Count: $count');
+      // print('=== ADDING BOOK ===');
+      // print('Title: $title, Author: $author, Genre: $genre, Count: $count');
       
       final result = await _apiService.addBook(
         title: title,
@@ -163,18 +163,18 @@ class LibraryProvider with ChangeNotifier {
         librarianId: librarianId,
       );
       
-      print('Add book result: $result');
+      // print('Add book result: $result');
       
       if (result != null && result['success'] == true) {
         // Refresh books from API to get the latest data
         await _loadBooksFromAPI();
         return true;
       } else {
-        print('Failed to add book - API returned: $result');
+        // print('Failed to add book - API returned: $result');
       }
       return false;
     } catch (e) {
-      print('Error adding book: $e');
+      // print('Error adding book: $e');
       return false;
     }
   }
@@ -206,7 +206,7 @@ class LibraryProvider with ChangeNotifier {
       }
       return null;
     } catch (e) {
-      print('Error uploading certificate: $e');
+      // print('Error uploading certificate: $e');
       return null;
     }
   }
@@ -233,7 +233,7 @@ class LibraryProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Error submitting donation: $e');
+      // print('Error submitting donation: $e');
       return false;
     }
   }
@@ -250,7 +250,7 @@ class LibraryProvider with ChangeNotifier {
     try {
       return await _apiService.getDashboardStats(librarianId: librarianId);
     } catch (e) {
-      print('Error getting dashboard stats: $e');
+      // print('Error getting dashboard stats: $e');
       return null;
     }
   }

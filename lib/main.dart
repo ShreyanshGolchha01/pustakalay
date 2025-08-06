@@ -82,6 +82,8 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
+                width: 120,
+                height: 120,
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -94,15 +96,17 @@ class _SplashScreenState extends State<SplashScreen> {
                     ),
                   ],
                 ),
-                child: Icon(
-                  Icons.library_books,
-                  size: 80,
-                  color: Color(0xFF1E3A8A),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/logo.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               SizedBox(height: 30),
               Text(
-                'पुस्तकालय',
+                'स्मृति पुस्तकालय',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -110,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               Text(
-                'Library Management System',
+                'Smriti Library',
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white70,
@@ -118,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               SizedBox(height: 20),
               Text(
-                'Government of India',
+                'Government of Chhattisgarh',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.white60,

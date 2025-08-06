@@ -44,7 +44,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('Login API Error: $e');
       return null;
     }
   }
@@ -73,21 +72,12 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('Search Donor API Error: $e');
       return null;
     }
   }
 
   Future<Map<String, dynamic>?> addDonor(String name, String mobile, String librarianId) async {
     try {
-      print('=== ADD DONOR API ===');
-      print('URL: ${ApiConstants.baseUrl}${ApiConstants.addDonorEndpoint}');
-      print('Request body: ${jsonEncode({
-        'name': name,
-        'mobile': mobile,
-        'librarian_id': librarianId,
-      })}');
-      
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.addDonorEndpoint}'),
         headers: _headers,
@@ -98,24 +88,17 @@ class ApiService {
         }),
       ).timeout(ApiConstants.requestTimeout);
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Parsed response data: $data');
         if (data['success'] == true) {
           return data;
         } else {
-          print('API returned success=false: ${data['message']}');
           return data; // Return data even if success is false to get error message
         }
       } else {
-        print('HTTP Error: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Add Donor API Error: $e');
       return null;
     }
   }
@@ -129,26 +112,17 @@ class ApiService {
         url += 'search=${Uri.encodeComponent(query)}';
       }
 
-      print('=== SEARCH BOOKS API (UNIFIED) ===');
-      print('URL: $url');
-      print('Headers: $_headers');
-
       final response = await http.get(
         Uri.parse(url),
         headers: _headers,
       ).timeout(ApiConstants.requestTimeout);
 
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
           final booksData = data['data'] as List;
-          print('Books found: ${booksData.length}');
           
           final books = booksData.map((bookJson) {
-            print('Processing book: $bookJson');
             return Book(
               id: (bookJson['b_id'] ?? bookJson['id'] ?? '').toString(),
               title: bookJson['b_title'] ?? bookJson['title'] ?? '',
@@ -158,18 +132,15 @@ class ApiService {
             );
           }).toList();
           
-          print('Parsed books: ${books.length}');
           return books;
         } else {
-          print('API returned success=false: ${data['message']}');
+          // API returned success=false
         }
       } else {
-        print('HTTP Error: ${response.statusCode}');
-        print('Error Response: ${response.body}');
+        // HTTP Error
       }
       return null;
     } catch (e) {
-      print('Search Books API Error: $e');
       return null;
     }
   }
@@ -190,42 +161,26 @@ class ApiService {
         'librarian_id': librarianId,
       };
 
-      print('=== ADD BOOK API ===');
-      print('URL: ${ApiConstants.baseUrl}${ApiConstants.addBookEndpoint}');
-      print('Headers: $_headers');
-      print('Request Body: $requestBody');
-
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.addBookEndpoint}'),
         headers: _headers,
         body: jsonEncode(requestBody),
       ).timeout(ApiConstants.requestTimeout);
 
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Parsed response data: $data');
         if (data['success'] == true) {
-          print('Book added successfully');
-          print('Response data: ${data['data']}');
-          print('Book ID from response: ${data['data']?['b_id'] ?? data['b_id']}');
           return data;
         } else {
-          print('API returned success=false: ${data['message']}');
           return data; // Return the response even if success is false so we can handle the error message
         }
       } else {
-        print('HTTP Error: ${response.statusCode}');
-        print('Error Response: ${response.body}');
         return {
           'success': false,
           'message': 'HTTP Error: ${response.statusCode}'
         };
       }
     } catch (e) {
-      print('Add Book API Error: $e');
       return {
         'success': false,
         'message': 'Network error: $e'
@@ -240,12 +195,6 @@ class ApiService {
     required String librarianId,
   }) async {
     try {
-      print('=== UPLOAD CERTIFICATE API ===');
-      print('File path: ${certificateFile.path}');
-      print('Donor ID: $donorId');
-      print('Librarian ID: $librarianId');
-      print('URL: ${ApiConstants.baseUrl}${ApiConstants.uploadCertificateEndpoint}');
-
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.uploadCertificateEndpoint}'),
@@ -257,34 +206,18 @@ class ApiService {
       request.fields['donor_id'] = donorId;
       request.fields['librarian_id'] = librarianId;
       
-      print('Request fields: ${request.fields}');
-      print('Request files: ${request.files.length}');
-      
       final response = await request.send();
-      print('Upload response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final responseData = await response.stream.bytesToString();
-        print('Upload response data: $responseData');
-        
         final data = jsonDecode(responseData);
-        print('Parsed upload data: $data');
         
         if (data['success'] == true) {
-          print('Certificate uploaded successfully');
-          print('Response data structure: ${data['data']}');
           return data;
-        } else {
-          print('Upload failed: ${data['message'] ?? 'Unknown error'}');
         }
-      } else {
-        print('HTTP Error: ${response.statusCode}');
-        final responseData = await response.stream.bytesToString();
-        print('Error response: $responseData');
       }
       return null;
     } catch (e) {
-      print('Upload Certificate API Error: $e');
       return null;
     }
   }
@@ -307,34 +240,23 @@ class ApiService {
         requestBody['certificate_path'] = certificatePath;
       }
 
-      print('=== ADD DONATION API ===');
-      print('URL: ${ApiConstants.baseUrl}${ApiConstants.addDonationEndpoint}');
-      print('Request body: ${jsonEncode(requestBody)}');
-
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.addDonationEndpoint}'),
         headers: _headers,
         body: jsonEncode(requestBody),
       ).timeout(ApiConstants.requestTimeout);
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Parsed response data: $data');
         if (data['success'] == true) {
           return data;
         } else {
-          print('API returned success=false: ${data['message']}');
           return data; // Return data even if success is false to get error message
         }
       } else {
-        print('HTTP Error: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Add Donation API Error: $e');
       return null;
     }
   }
@@ -345,37 +267,19 @@ class ApiService {
       // Remove librarian_id to get unified stats for all users
       String url = '${ApiConstants.baseUrl}${ApiConstants.dashboardEndpoint}';
 
-      print('=== DASHBOARD STATS API (UNIFIED) ===');
-      print('URL: $url');
-      print('Headers: $_headers');
-
       final response = await http.get(
         Uri.parse(url),
         headers: _headers,
       ).timeout(ApiConstants.requestTimeout);
 
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Parsed Response: $data');
         if (data['success'] == true) {
-          print('Dashboard stats data keys: ${data['data']?.keys}');
-          print('total_donors value: ${data['data']?['total_donors']}');
-          print('total_donations value: ${data['data']?['total_donations']}');
-          print('total_books value: ${data['data']?['total_books']}');
-          print('total_copies value: ${data['data']?['total_copies']}');
           return data['data'];
-        } else {
-          print('API returned success=false: ${data['message']}');
         }
-      } else {
-        print('HTTP Error: ${response.statusCode}');
       }
       return null;
     } catch (e) {
-      print('Dashboard Stats API Error: $e');
       return null;
     }
   }

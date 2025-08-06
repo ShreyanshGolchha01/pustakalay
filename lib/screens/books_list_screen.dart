@@ -29,13 +29,13 @@ class _BooksListScreenState extends State<BooksListScreen> {
     });
 
     try {
-      print('=== LOADING ALL BOOKS FROM API (UNIFIED) ===');
+      // print('=== LOADING ALL BOOKS FROM API (UNIFIED) ===');
       final apiService = ApiService();
       
       // Fetch all books from all librarians (unified view)
       final books = await apiService.searchBooks();
       
-      print('Books received from API: ${books?.length ?? 0}');
+      // print('Books received from API: ${books?.length ?? 0}');
       
       if (books != null) {
         setState(() {
@@ -43,14 +43,14 @@ class _BooksListScreenState extends State<BooksListScreen> {
           _filteredBooks = books;
           _isLoading = false;
         });
-        print('Books loaded successfully: ${_allBooks.length}');
+        // print('Books loaded successfully: ${_allBooks.length}');
       } else {
         setState(() {
           _allBooks = [];
           _filteredBooks = [];
           _isLoading = false;
         });
-        print('No books received from API');
+        // print('No books received from API');
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -63,7 +63,7 @@ class _BooksListScreenState extends State<BooksListScreen> {
       setState(() {
         _isLoading = false;
       });
-      print('Error loading books: $e');
+      // print('Error loading books: $e');
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -105,7 +105,7 @@ class _BooksListScreenState extends State<BooksListScreen> {
         _filteredBooks = searchResults;
       });
     } catch (e) {
-      print('Error searching books: $e');
+      // print('Error searching books: $e');
       setState(() {
         _filteredBooks = [];
       });

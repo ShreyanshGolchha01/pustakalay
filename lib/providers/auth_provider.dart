@@ -27,9 +27,9 @@ class AuthProvider with ChangeNotifier {
   Future<bool> login(String email, String password) async {
     try {
       final url = '${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}';
-      print('Login URL: $url');
-      print('Email: $email');
-      print('Password length: ${password.length}');
+      // print('Login URL: $url');
+      // print('Email: $email');
+      // print('Password length: ${password.length}');
       
       // API call to backend
       final response = await http.post(
@@ -41,8 +41,8 @@ class AuthProvider with ChangeNotifier {
         }),
       ).timeout(ApiConstants.requestTimeout);
 
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      // print('Response Status: ${response.statusCode}');
+      // print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -65,17 +65,17 @@ class AuthProvider with ChangeNotifier {
           notifyListeners();
           return true;
         } else {
-          print('Login failed: ${data['message']}');
+          // print('Login failed: ${data['message']}');
           return false;
         }
       } else {
-        print('HTTP Error: ${response.statusCode}');
-        print('Error Body: ${response.body}');
+        // print('HTTP Error: ${response.statusCode}');
+        // print('Error Body: ${response.body}');
         return false;
       }
       
     } catch (e) {
-      print('Login error: $e');
+      // print('Login error: $e');
       return false;
     }
   }
@@ -93,7 +93,7 @@ class AuthProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Logout error: $e');
+      // print('Logout error: $e');
     }
   }
 

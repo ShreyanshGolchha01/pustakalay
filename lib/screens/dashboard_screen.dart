@@ -32,20 +32,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
       
-      print('=== LOADING UNIFIED DASHBOARD DATA ===');
-      print('Fetching unified stats for all users');
+      // print('=== LOADING UNIFIED DASHBOARD DATA ===');
+      // print('Fetching unified stats for all users');
       
       // Pass null to get unified stats for all users instead of specific librarian
       final data = await libraryProvider.getDashboardStats(librarianId: null);
       
-      print('Dashboard API Response: $data');
+      // print('Dashboard API Response: $data');
       
       setState(() {
         _dashboardData = data;
         _isLoadingStats = false;
       });
     } catch (e) {
-      print('Error loading dashboard data: $e');
+      // print('Error loading dashboard data: $e');
       setState(() {
         _isLoadingStats = false;
       });
@@ -228,9 +228,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final apiStats = _dashboardData;
         final localStats = libraryProvider.getLibraryStats();
         
-        print('=== STATS SECTION ===');
-        print('API Stats: $apiStats');
-        print('Local Stats: ${localStats.totalBooks}, ${localStats.totalDonations}, ${localStats.totalDonors}');
+        // print('=== STATS SECTION ===');
+        // print('API Stats: $apiStats');
+        // print('Local Stats: ${localStats.totalBooks}, ${localStats.totalDonations}, ${localStats.totalDonors}');
         
         // Extract values with proper fallbacks and null safety
         int totalBooks = 0;
@@ -240,8 +240,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         
         if (apiStats != null) {
           // Parse API data with enhanced type handling
-          print('=== API STATS PARSING ===');
-          print('Raw API Stats: $apiStats');
+          // print('=== API STATS PARSING ===');
+          // print('Raw API Stats: $apiStats');
           
           // Helper function to safely parse integers
           int safeParseInt(dynamic value) {
@@ -256,7 +256,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           totalDonations = safeParseInt(apiStats['total_donations']);
           totalDonors = safeParseInt(apiStats['total_donors']);
           
-          print('Final parsed values - Books: $totalBooks, Copies: $totalCopies, Donations: $totalDonations, Donors: $totalDonors');
+          // print('Final parsed values - Books: $totalBooks, Copies: $totalCopies, Donations: $totalDonations, Donors: $totalDonors');
         } else {
           // Fallback to local data
           totalBooks = localStats.totalBooks;
@@ -264,7 +264,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           totalDonations = localStats.totalDonations;
           totalDonors = localStats.totalDonors;
           
-          print('Local Data - Books: $totalBooks, Copies: $totalCopies, Donations: $totalDonations, Donors: $totalDonors');
+          // print('Local Data - Books: $totalBooks, Copies: $totalCopies, Donations: $totalDonations, Donors: $totalDonors');
         }
         
         return Column(

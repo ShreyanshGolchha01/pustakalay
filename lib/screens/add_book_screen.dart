@@ -56,25 +56,17 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
   Future<void> _loadInitialBooks() async {
     try {
-      print('=== LOADING INITIAL BOOKS IN ADD_BOOK_SCREEN ===');
       final apiService = ApiService();
       final books = await apiService.searchBooks();
       
-      print('Books received: ${books?.length ?? 0}');
       if (books != null) {
-        for (var book in books) {
-          print('Book: ${book.title} by ${book.author}, Count: ${book.count}');
-        }
         setState(() {
           _availableBooks.clear();
           _availableBooks.addAll(books);
         });
-        print('Available books updated: ${_availableBooks.length}');
-      } else {
-        print('No books received from API');
       }
     } catch (e) {
-      print('Error loading initial books: $e');
+      // Handle error silently
     }
   }
 
@@ -525,18 +517,11 @@ class _AddBookScreenState extends State<AddBookScreen> {
       final apiService = ApiService();
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      print('=== CREATING NEW DONOR ===');
-      print('Name: ${_nameController.text}');
-      print('Mobile: ${_mobileController.text}');
-      print('Librarian ID: ${authProvider.librarianId}');
-      
       final result = await apiService.addDonor(
         _nameController.text.trim(),
         _mobileController.text.trim(),
         authProvider.librarianId ?? '',
       );
-      
-      print('Create donor result: $result');
       
       if (result != null && result['success'] == true) {
         // Get donor ID from response
@@ -550,7 +535,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
           _isCreatingDonor = false;
         });
         
-        print('Donor created successfully with ID: $donorId');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('दानकर्ता सफलतापूर्वक जोड़ा गया'),
@@ -575,7 +559,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
         _isCreatingDonor = false;
       });
       
-      print('Error creating donor: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('त्रुटि: $e'),
@@ -919,18 +902,11 @@ class _AddBookScreenState extends State<AddBookScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final donorId = _isNewUser ? _createdDonorId : _selectedUser?.id;
       
-      print('=== UPLOADING CERTIFICATE ===');
-      print('Certificate file path: ${_certificateImage!.path}');
-      print('Donor ID: $donorId');
-      print('Librarian ID: ${authProvider.librarianId}');
-      
       final uploadResult = await apiService.uploadCertificate(
         certificateFile: _certificateImage!,
         donorId: donorId!,
         librarianId: authProvider.librarianId ?? '',
       );
-      
-      print('Upload result: $uploadResult');
       
       if (uploadResult != null && uploadResult['success'] == true) {
         final certificateFilename = uploadResult['data']['file_path'] ?? 
@@ -943,7 +919,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
           _isUploadingCertificate = false;
         });
         
-        print('Certificate uploaded successfully: $certificateFilename');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('प्रमाणपत्र सफलतापूर्वक अपलोड किया गया'),
@@ -968,7 +943,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
         _isUploadingCertificate = false;
       });
       
-      print('Error uploading certificate: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('त्रुटि: $e'),
@@ -1068,10 +1042,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
   }
 
   Future<void> _searchBooks(String query) async {
-    print('=== SEARCHING BOOKS ===');
-    print('Query: "$query"');
-    print('Current available books: ${_availableBooks.length}');
-    
     // If query is empty, clear the books list
     if (query.trim().isEmpty) {
       setState(() {
@@ -1089,23 +1059,14 @@ class _AddBookScreenState extends State<AddBookScreen> {
       final apiService = ApiService();
       final books = await apiService.searchBooks(query: query.trim());
       
-      print('Search API returned: ${books?.length ?? 0} books');
-      
       setState(() {
         _availableBooks.clear();
         if (books != null) {
           _availableBooks.addAll(books);
-          print('Updated available books: ${_availableBooks.length}');
-          for (var book in _availableBooks) {
-            print('- ${book.title} by ${book.author}');
-          }
-        } else {
-          print('No books returned from API');
         }
         _isLoadingBooks = false;
       });
     } catch (e) {
-      print('Error in _searchBooks: $e');
       setState(() {
         _isLoadingBooks = false;
       });
@@ -1121,8 +1082,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
   void _showBookSearchDialog() {
     // Don't load books initially - only when user searches
-    print('=== OPENING BOOK SEARCH DIALOG ===');
-    print('Available books before dialog: ${_availableBooks.length}');
     
     // Clear search controller and available books for fresh start
     _searchBookController.clear();
@@ -1166,7 +1125,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     prefixIcon: Icon(Icons.search),
                     suffixIcon: IconButton(
                       onPressed: () {
-                        print('Search button pressed: ${_searchBookController.text}');
+                        // print('Search button pressed: ${_searchBookController.text}');
                         _searchBooks(_searchBookController.text).then((_) {
                           setDialogState(() {}); // Update dialog state
                         });
@@ -1175,7 +1134,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     ),
                   ),
                   onChanged: (value) {
-                    print('Search text changed: $value');
                     _searchBooks(value).then((_) {
                       setDialogState(() {}); // Update dialog state
                     });
@@ -1242,7 +1200,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
   }
 
   Widget _buildSearchResultItem(Book book) {
-    print('Building search result item for: ${book.title}');
     return Container(
       margin: EdgeInsets.only(bottom: 8),
       child: Card(
@@ -1470,12 +1427,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
         final apiService = ApiService();
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         
-        print('=== ADDING NEW BOOK ===');
-        print('Title: ${_titleController.text}');
-        print('Author: ${_authorController.text}');
-        print('Genre: ${_genreController.text}');
-        print('Librarian ID: ${authProvider.librarianId}');
-        
         final result = await apiService.addBook(
           title: _titleController.text,
           author: _authorController.text,
@@ -1484,13 +1435,13 @@ class _AddBookScreenState extends State<AddBookScreen> {
           librarianId: authProvider.librarianId ?? '',
         );
 
-        print('Add book API result: $result');
+        // print('Add book API result: $result');
 
         if (result != null && result['success'] == true) {
           // Create Book object from API response with null safety
           final bookData = result['data'];
-          print('Book data from API: $bookData');
-          print('Full API result: $result');
+          // print('Book data from API: $bookData');
+          // print('Full API result: $result');
           
           // Extract book ID from multiple possible locations
           String bookId = '';
@@ -1507,7 +1458,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
                      result['book_id'] ?? '').toString();
           }
           
-          print('Extracted book ID: $bookId');
+          // print('Extracted book ID: $bookId');
           
           final book = Book(
             id: bookId,
@@ -1519,13 +1470,13 @@ class _AddBookScreenState extends State<AddBookScreen> {
                                 bookData?['count'] ?? 1).toString()) ?? 1,
           );
 
-          print('Created book object: ${book.title} by ${book.author}, ID: ${book.id}');
+          // print('Created book object: ${book.title} by ${book.author}, ID: ${book.id}');
 
           // Validate book ID
           if (book.id.isEmpty) {
-            print('ERROR: Book ID is empty after extraction');
-            print('BookData keys: ${bookData?.keys}');
-            print('Result keys: ${result.keys}');
+            // print('ERROR: Book ID is empty after extraction');
+            // print('BookData keys: ${bookData?.keys}');
+            // print('Result keys: ${result.keys}');
             throw Exception('पुस्तक ID प्राप्त नहीं हुई API से। कृपया पुनः प्रयास करें।');
           }
 
@@ -1554,8 +1505,8 @@ class _AddBookScreenState extends State<AddBookScreen> {
           });
           
           final errorMessage = result?['message'] ?? 'Unknown error';
-          print('API returned success=false: $errorMessage');
-          print('Full result: $result');
+          // print('API returned success=false: $errorMessage');
+          // print('Full result: $result');
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1570,7 +1521,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
           _isLoading = false;
         });
         
-        print('Error in _addNewBook: $e');
+        // print('Error in _addNewBook: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('त्रुटि: $e'),
@@ -1589,23 +1540,20 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
   // Image Compression Function
   Future<File> _compressImage(File imageFile) async {
-    print('=== COMPRESSING IMAGE ===');
-    print('Original file path: ${imageFile.path}');
+    // print('=== COMPRESSING IMAGE ===');
+    // print('Original file path: ${imageFile.path}');
     
     try {
       // Read original image file
       final bytes = await imageFile.readAsBytes();
-      final originalSize = bytes.length;
-      print('Original size: ${(originalSize / 1024 / 1024).toStringAsFixed(2)} MB');
       
       // Decode image
       img.Image? image = img.decodeImage(bytes);
       if (image == null) {
-        print('Failed to decode image');
         return imageFile; // Return original if decoding fails
       }
       
-      print('Original dimensions: ${image.width}x${image.height}');
+      // print('Original dimensions: ${image.width}x${image.height}');
       
       // Resize image if too large (max width/height: 1200px)
       int maxDimension = 1200;
@@ -1619,14 +1567,11 @@ class _AddBookScreenState extends State<AddBookScreen> {
           int newWidth = (image.width * maxDimension / image.height).round();
           image = img.copyResize(image, width: newWidth, height: newHeight);
         }
-        print('Resized dimensions: ${image.width}x${image.height}');
+        // print('Resized dimensions: ${image.width}x${image.height}');
       }
       
       // Compress image with quality 85 (good balance between quality and size)
       final compressedBytes = img.encodeJpg(image, quality: 85);
-      final compressedSize = compressedBytes.length;
-      print('Compressed size: ${(compressedSize / 1024 / 1024).toStringAsFixed(2)} MB');
-      print('Compression ratio: ${((originalSize - compressedSize) / originalSize * 100).toStringAsFixed(1)}%');
       
       // Create compressed file in the same directory as original
       final originalPath = imageFile.path;
@@ -1643,20 +1588,20 @@ class _AddBookScreenState extends State<AddBookScreen> {
       // Write compressed bytes to file
       await compressedFile.writeAsBytes(compressedBytes);
       
-      print('Compressed file saved at: $compressedPath');
+      // print('Compressed file saved at: $compressedPath');
       
       // Delete original file to save space
       try {
         await imageFile.delete();
-        print('Original file deleted');
+        // print('Original file deleted');
       } catch (e) {
-        print('Warning: Could not delete original file: $e');
+        // print('Warning: Could not delete original file: $e');
       }
       
       return compressedFile;
       
     } catch (e) {
-      print('Error in image compression: $e');
+      // print('Error in image compression: $e');
       return imageFile; // Return original file if compression fails
     }
   }
@@ -1670,7 +1615,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
     
     if (image != null) {
       try {
-        print('=== PROCESSING PICKED IMAGE ===');
+        // print('=== PROCESSING PICKED IMAGE ===');
         final originalFile = File(image.path);
         
         // Show loading indicator
@@ -1708,7 +1653,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
         );
         
       } catch (e) {
-        print('Error compressing image: $e');
+        // print('Error compressing image: $e');
         // If compression fails, use original file
         setState(() {
           _certificateImage = File(image.path);
@@ -1740,10 +1685,10 @@ class _AddBookScreenState extends State<AddBookScreen> {
         throw Exception('दानकर्ता ID उपलब्ध नहीं है');
       }
 
-      print('=== SUBMITTING DONATION ===');
-      print('Donor ID: $donorId');
-      print('Librarian ID: ${authProvider.librarianId}');
-      print('Certificate Path: $_uploadedCertificatePath');
+      // print('=== SUBMITTING DONATION ===');
+      // print('Donor ID: $donorId');
+      // print('Librarian ID: ${authProvider.librarianId}');
+      // print('Certificate Path: $_uploadedCertificatePath');
 
       // Prepare books data
       final booksData = _selectedBooks.map((bookData) {
@@ -1761,7 +1706,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
         };
       }).toList();
 
-      print('Books data: $booksData');
+      // print('Books data: $booksData');
 
       // Validate all book IDs
       for (var bookData in booksData) {
@@ -1778,7 +1723,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
         certificatePath: _uploadedCertificatePath,
       );
 
-      print('Donation result: $donationResult');
+      // print('Donation result: $donationResult');
 
       if (donationResult != null && donationResult['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1794,7 +1739,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
         throw Exception('दान सबमिट करने में त्रुटि: $errorMessage');
       }
     } catch (e) {
-      print('Error in _submitDonation: $e');
+      // print('Error in _submitDonation: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('त्रुटि: $e'),
