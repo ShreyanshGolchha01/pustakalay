@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
 import 'dart:io';
+// import 'dart:typed_data';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../utils/app_theme.dart';
@@ -1585,14 +1587,140 @@ class _AddBookScreenState extends State<AddBookScreen> {
     _genreController.clear();
   }
 
+  // Image Compression Function
+  Future<File> _compressImage(File imageFile) async {
+    print('=== COMPRESSING IMAGE ===');
+    print('Original file path: ${imageFile.path}');
+    
+    try {
+      // Read original image file
+      final bytes = await imageFile.readAsBytes();
+      final originalSize = bytes.length;
+      print('Original size: ${(originalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+      
+      // Decode image
+      img.Image? image = img.decodeImage(bytes);
+      if (image == null) {
+        print('Failed to decode image');
+        return imageFile; // Return original if decoding fails
+      }
+      
+      print('Original dimensions: ${image.width}x${image.height}');
+      
+      // Resize image if too large (max width/height: 1200px)
+      int maxDimension = 1200;
+      if (image.width > maxDimension || image.height > maxDimension) {
+        if (image.width > image.height) {
+          int newWidth = maxDimension;
+          int newHeight = (image.height * maxDimension / image.width).round();
+          image = img.copyResize(image, width: newWidth, height: newHeight);
+        } else {
+          int newHeight = maxDimension;
+          int newWidth = (image.width * maxDimension / image.height).round();
+          image = img.copyResize(image, width: newWidth, height: newHeight);
+        }
+        print('Resized dimensions: ${image.width}x${image.height}');
+      }
+      
+      // Compress image with quality 85 (good balance between quality and size)
+      final compressedBytes = img.encodeJpg(image, quality: 85);
+      final compressedSize = compressedBytes.length;
+      print('Compressed size: ${(compressedSize / 1024 / 1024).toStringAsFixed(2)} MB');
+      print('Compression ratio: ${((originalSize - compressedSize) / originalSize * 100).toStringAsFixed(1)}%');
+      
+      // Create compressed file in the same directory as original
+      final originalPath = imageFile.path;
+      final directory = imageFile.parent;
+      final filename = originalPath.split('/').last.split('\\').last;
+      final nameWithoutExtension = filename.contains('.') 
+          ? filename.substring(0, filename.lastIndexOf('.'))
+          : filename;
+      
+      // Create new compressed file path
+      final compressedPath = '${directory.path}/compressed_$nameWithoutExtension.jpg';
+      final compressedFile = File(compressedPath);
+      
+      // Write compressed bytes to file
+      await compressedFile.writeAsBytes(compressedBytes);
+      
+      print('Compressed file saved at: $compressedPath');
+      
+      // Delete original file to save space
+      try {
+        await imageFile.delete();
+        print('Original file deleted');
+      } catch (e) {
+        print('Warning: Could not delete original file: $e');
+      }
+      
+      return compressedFile;
+      
+    } catch (e) {
+      print('Error in image compression: $e');
+      return imageFile; // Return original file if compression fails
+    }
+  }
+
   Future<void> _pickCertificateImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90, // Initial quality setting
+    );
     
     if (image != null) {
-      setState(() {
-        _certificateImage = File(image.path);
-      });
+      try {
+        print('=== PROCESSING PICKED IMAGE ===');
+        final originalFile = File(image.path);
+        
+        // Show loading indicator
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 16),
+                Text('फोटो compress हो रहा है...'),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        
+        // Compress the image
+        final compressedFile = await _compressImage(originalFile);
+        
+        setState(() {
+          _certificateImage = compressedFile;
+        });
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('फोटो सफलतापूर्वक compress हो गया'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+      } catch (e) {
+        print('Error compressing image: $e');
+        // If compression fails, use original file
+        setState(() {
+          _certificateImage = File(image.path);
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('फोटो compression में त्रुटि, original फोटो का उपयोग किया जा रहा है'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 

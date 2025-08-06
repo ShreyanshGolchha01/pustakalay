@@ -24,9 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         sendResponse(false, 'Only JPEG and PNG files are allowed');
     }
     
-    // Validate file size (max 5MB)
-    if ($file['size'] > 5 * 1024 * 1024) {
-        sendResponse(false, 'File size too large. Maximum 5MB allowed');
+    // Validate file size (max 2MB for compressed images)
+    if ($file['size'] > 2 * 1024 * 1024) {
+        sendResponse(false, 'File size too large. Maximum 2MB allowed. Please compress the image.');
     }
     
     try {
