@@ -158,13 +158,13 @@ class _AddBookScreenState extends State<AddBookScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  'Add Book Donation',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                // Text(
+                //   'Add Book Donation',
+                //   style: TextStyle(
+                //     color: Colors.white70,
+                //     fontSize: 14,
+                //   ),
+                // ),
               ],
             ),
           ),

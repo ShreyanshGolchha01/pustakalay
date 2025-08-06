@@ -410,25 +410,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             SizedBox(height: 16),
-            SizedBox(
-              height: 200,
+            recentBooks.isEmpty
+                ? Container(
+                    height: 150,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.book_outlined, size: 48, color: Colors.grey[400]),
+                        SizedBox(height: 8),
+                        Text(
+                          'अभी तक कोई पुस्तक नहीं मिली',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : SizedBox(
+              height: 210,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.only(left: 4, right: 4),
                 itemCount: recentBooks.length,
                 itemBuilder: (context, index) {
                   final book = recentBooks[index];
                   return Container(
-                    width: 160,
-                    margin: EdgeInsets.only(right: 16),
-                    padding: EdgeInsets.all(16),
+                    width: 150,
+                    margin: EdgeInsets.only(right: 16, bottom: 8),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                          spreadRadius: 1,
                         ),
                       ],
                     ),
@@ -437,18 +463,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Container(
                           width: double.infinity,
-                          height: 80,
+                          height: 75,
                           decoration: BoxDecoration(
                             gradient: AppTheme.primaryGradient,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             Icons.book,
                             color: Colors.white,
-                            size: 40,
+                            size: 36,
                           ),
                         ),
-                        SizedBox(height: 12),
+                        SizedBox(height: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,36 +482,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Text(
                                 book.title,
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.primaryBlue,
+                                  height: 1.2,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              SizedBox(height: 4),
+                              SizedBox(height: 6),
                               Text(
                                 book.author,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: const Color.fromARGB(255, 0, 0, 0),
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Spacer(),
-                              Row(
-                                children: [
-                                  Icon(Icons.inventory_2, size: 14, color: const Color.fromARGB(255, 0, 0, 0)),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '${book.count}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color.fromARGB(255, 0, 0, 0),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.inventory_2, size: 12, color: AppTheme.primaryBlue),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      '${book.count} प्रतियां',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppTheme.primaryBlue,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ],
                           ),
