@@ -152,23 +152,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF1E40AF),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.login,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
+                            // Container(
+                            //   padding: EdgeInsets.all(10),
+                            //   decoration: BoxDecoration(
+                            //     color: Color(0xFF1E40AF),
+                            //     borderRadius: BorderRadius.circular(10),
+                            //   ),
+                            //   child: Icon(
+                            //     Icons.login,
+                            //     color: Colors.white,
+                            //     size: 22,
+                            //   ),
+                            // ),
                             SizedBox(width: 12),
                             Text(
                               'लॉग इन',
                               style: TextStyle(
-                                fontSize: isTablet ? 22 : 20,
+                                fontSize: isTablet ? 26 : 24,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF0F172A),
                                 letterSpacing: 0.3,
@@ -450,12 +450,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'पुस्तकालय विभाग • SSIPMT, Raipur\nversion 1.0.0',
+                        'पुस्तकालय विभाग • SSIPMT, Raipur\nversion 2.0.0',
                         style: TextStyle(
                           color: Color(0xFF64748B),
                           fontSize: isTablet ? 10 : 9,
                           fontWeight: FontWeight.w500,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
