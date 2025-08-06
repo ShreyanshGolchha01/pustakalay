@@ -187,12 +187,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 authProvider.getWelcomeMessage(),
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.primaryBlue,
                 ),
               ),
-              SizedBox(height: 12),
+              SizedBox(height: 10),
               Row(
                 children: [
                   Icon(Icons.access_time, size: 16, color: const Color.fromARGB(255, 0, 0, 0)),
@@ -292,9 +292,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 2.0,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 2.1,
               children: [
                 _buildStatCard(
                   'कुल प्रतियां',
@@ -330,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: EdgeInsets.all(9),
+      padding: EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -344,26 +344,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 24, color: color),
-          SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Icon(icon, size: 20, color: color),
+          SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 10,
-              color: const Color.fromARGB(255, 0, 0, 0),
+          SizedBox(height: 1),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: const Color.fromARGB(255, 0, 0, 0),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+              ),
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

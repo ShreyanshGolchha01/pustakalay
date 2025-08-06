@@ -1478,7 +1478,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
           title: _titleController.text,
           author: _authorController.text,
           genre: _genreController.text,
-          count: 1, // Default count for new book
+          count: 0, // Default count for new book
           librarianId: authProvider.librarianId ?? '',
         );
 
