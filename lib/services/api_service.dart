@@ -123,15 +123,13 @@ class ApiService {
   // Book APIs
   Future<List<Book>?> searchBooks({String? query, String? librarianId}) async {
     try {
+      // Remove librarian_id to get all books from all librarians (unified view)
       String url = '${ApiConstants.baseUrl}${ApiConstants.searchBooksEndpoint}?';
       if (query != null && query.isNotEmpty) {
-        url += 'search=${Uri.encodeComponent(query)}&';
-      }
-      if (librarianId != null && librarianId.isNotEmpty) {
-        url += 'librarian_id=$librarianId';
+        url += 'search=${Uri.encodeComponent(query)}';
       }
 
-      print('=== SEARCH BOOKS API ===');
+      print('=== SEARCH BOOKS API (UNIFIED) ===');
       print('URL: $url');
       print('Headers: $_headers');
 
@@ -344,12 +342,10 @@ class ApiService {
   // Dashboard Stats API
   Future<Map<String, dynamic>?> getDashboardStats({String? librarianId}) async {
     try {
+      // Remove librarian_id to get unified stats for all users
       String url = '${ApiConstants.baseUrl}${ApiConstants.dashboardEndpoint}';
-      if (librarianId != null && librarianId.isNotEmpty) {
-        url += '?librarian_id=$librarianId';
-      }
 
-      print('=== DASHBOARD STATS API ===');
+      print('=== DASHBOARD STATS API (UNIFIED) ===');
       print('URL: $url');
       print('Headers: $_headers');
 

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../utils/app_theme.dart';
 import '../models/app_models.dart';
@@ -31,14 +29,11 @@ class _BooksListScreenState extends State<BooksListScreen> {
     });
 
     try {
-      print('=== LOADING ALL BOOKS FROM API ===');
+      print('=== LOADING ALL BOOKS FROM API (UNIFIED) ===');
       final apiService = ApiService();
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      // Fetch all books (empty query returns all books)
-      final books = await apiService.searchBooks(
-        librarianId: authProvider.librarianId,
-      );
+      // Fetch all books from all librarians (unified view)
+      final books = await apiService.searchBooks();
       
       print('Books received from API: ${books?.length ?? 0}');
       
@@ -217,33 +212,31 @@ class _BooksListScreenState extends State<BooksListScreen> {
       padding: EdgeInsets.all(20),
       child: Row(
         children: [
-          // Search Field
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'पुस्तक या लेखक खोजें...',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchBooks('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+              // Search Field
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'पुस्तक या लेखक खोजें...',
+                    prefixIcon: Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              _searchBooks('');
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  onChanged: _searchBooks,
                 ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              onChanged: _searchBooks,
-            ),
-          ),
-          
-          SizedBox(width: 12),
+              ),          SizedBox(width: 12),
           
           // Genre Filter Dropdown
           Container(

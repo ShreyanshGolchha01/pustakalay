@@ -31,15 +31,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      // Get librarian ID from auth provider
-      final librarianId = authProvider.librarianId;
+      print('=== LOADING UNIFIED DASHBOARD DATA ===');
+      print('Fetching unified stats for all users');
       
-      print('=== LOADING DASHBOARD DATA ===');
-      print('Librarian ID: $librarianId');
-      
-      final data = await libraryProvider.getDashboardStats(librarianId: librarianId);
+      // Pass null to get unified stats for all users instead of specific librarian
+      final data = await libraryProvider.getDashboardStats(librarianId: null);
       
       print('Dashboard API Response: $data');
       
