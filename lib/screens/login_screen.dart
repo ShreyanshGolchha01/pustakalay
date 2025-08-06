@@ -71,11 +71,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Government Logo Section
+                      // App Logo Section
                       Container(
+                        width: isTablet ? 120 : 100,
+                        height: isTablet ? 120 : 100,
                         padding: EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Color(0xFF1E40AF),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
@@ -84,11 +86,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               offset: Offset(0, 3),
                             ),
                           ],
+                          border: Border.all(
+                            color: Color(0xFF1E40AF).withOpacity(0.1),
+                            width: 1,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.account_balance,
-                          size: isTablet ? 32 : 28,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.asset(
+                            'assets/logo.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       
@@ -441,7 +449,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     children: [
                       Text(
-                        '© 2025 छत्तीसगढ़ शासन',
+                        '2025 छत्तीसगढ़ शासन',
                         style: TextStyle(
                           color: Color(0xFF1E40AF),
                           fontSize: isTablet ? 12 : 11,
